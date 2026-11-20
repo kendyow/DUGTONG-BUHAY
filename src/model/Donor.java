@@ -1,11 +1,17 @@
 package model;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class Donor extends User {
     private final BloodType bloodType;
     private final Location location;
     private boolean consentToBeContacted;
     private boolean healthyToDonate;
     private double reliabilityScore;      // 0.0 to 1.0
+    private final List<Donation> donationHistory = new ArrayList<>();
 
     public Donor(String id, String name, String contactNumber,
                  BloodType bloodType, Location location) {
@@ -39,6 +45,47 @@ public class Donor extends User {
 
     public void setHealthyToDonate(boolean healthy) {
         this.healthyToDonate = healthy;
+    }
+
+    /** Read-only view: outside code cannot modify the list. */
+    public List<Donation> getDonationHistory() {
+        return Collections.unmodifiableList(donationHistory);
+    }
+
+    /** Accepts ANY Donation subtype (polymorphism). */
+    public void recordDonation(Donation donation) {
+        if (donation == null) {
+            throw new IllegalArgumentException("Donation cannot be null.");
+        }
+        donationHistory.add(donation);
+    }
+
+    /**
+     * The ONLY way to check eligibility. The donor must be healthy AND every
+     * past donation's waiting period must be over by the given date.
+     */
+    public boolean canDonate(LocalDate date) {
+        if (!healthyToDonate) {
+            return false;
+        }
+        for (Donation d : donationHistory) {
+            if (date.isBefore(d.computeNextEligibleDate())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Earliest date on or after 'from' when this donor may donate again. */
+    public LocalDate getNextEligibleDate(LocalDate from) {
+        LocalDate next = from;
+        for (Donation d : donationHistory) {
+            LocalDate candidate = d.computeNextEligibleDate();
+            if (candidate.isAfter(next)) {
+                next = candidate;
+            }
+        }
+        return next;
     }
 
     /** Responding to alerts raises the score; ignoring them lowers it. */
