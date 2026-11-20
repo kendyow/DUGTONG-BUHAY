@@ -33,6 +33,10 @@ public class Donor extends User {
     public String getRole() {
         return "Donor";
     }
+    @Override
+    public boolean canPostRequests() {
+        return false;   // donors respond to requests; they don't post them
+    }
 
     public BloodType getBloodType() { return bloodType; }
     public Location getLocation() { return location; }

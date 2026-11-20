@@ -34,6 +34,10 @@ public abstract class User {
     /** Each subclass must say what role it plays (polymorphism). */
     public abstract String getRole();
 
+        /** Can this kind of user post blood requests? (polymorphism) */
+    public abstract boolean canPostRequests();
+
+    
     @Override
     public String toString() {
         return getRole() + " [" + id + "] " + name;
