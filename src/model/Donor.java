@@ -5,13 +5,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Donor extends User {
+public class Donor extends User implements Notifiable {
     private final BloodType bloodType;
     private final Location location;
     private boolean consentToBeContacted;
     private boolean healthyToDonate;
     private double reliabilityScore;      // 0.0 to 1.0
     private final List<Donation> donationHistory = new ArrayList<>();
+    private final List<String> inbox = new ArrayList<>();
 
     public Donor(String id, String name, String contactNumber,
                  BloodType bloodType, Location location) {
@@ -96,5 +97,19 @@ public class Donor extends User {
     public void updateReliability(boolean responded) {
         double change = responded ? 0.1 : -0.1;
         reliabilityScore = Math.max(0.0, Math.min(1.0, reliabilityScore + change));
+    }
+
+        /** Second line of defense for privacy: no consent, no alerts. */
+    @Override
+    public void receiveAlert(String message) {
+        if (!consentToBeContacted) {
+            throw new IllegalStateException("Donor has not consented to alerts.");
+        }
+        inbox.add(message);
+    }
+
+    @Override
+    public List<String> getInbox() {
+        return Collections.unmodifiableList(inbox);
     }
 }

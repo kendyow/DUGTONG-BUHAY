@@ -1,8 +1,13 @@
 package model;
 
-public class HospitalStaff extends User {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class HospitalStaff extends User implements Notifiable {
     private final String hospitalName;
     private final Location hospitalLocation;
+    private final List<String> inbox = new ArrayList<>();
 
     public HospitalStaff(String id, String name, String contactNumber,
                          String hospitalName, Location hospitalLocation) {
@@ -30,10 +35,19 @@ public class HospitalStaff extends User {
     public String getHospitalName() { return hospitalName; }
     public Location getHospitalLocation() { return hospitalLocation; }
 
-    /** Creates an emergency request tied to this staff member's hospital. */
     public BloodRequest postRequest(String patientCode, BloodType bloodTypeNeeded,
                                     int unitsNeeded, UrgencyLevel urgency) {
         return new BloodRequest(patientCode, bloodTypeNeeded, unitsNeeded,
                 urgency, hospitalName, hospitalLocation, getId());
+    }
+
+    @Override
+    public void receiveAlert(String message) {
+        inbox.add(message);
+    }
+
+    @Override
+    public List<String> getInbox() {
+        return Collections.unmodifiableList(inbox);
     }
 }
