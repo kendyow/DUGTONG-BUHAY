@@ -1,0 +1,49 @@
+package model;
+
+public class Donor extends User {
+    private final BloodType bloodType;
+    private final Location location;
+    private boolean consentToBeContacted;
+    private boolean healthyToDonate;
+    private double reliabilityScore;      // 0.0 to 1.0
+
+    public Donor(String id, String name, String contactNumber,
+                 BloodType bloodType, Location location) {
+        super(id, name, contactNumber);
+        if (bloodType == null) {
+            throw new IllegalArgumentException("Blood type is required.");
+        }
+        if (location == null) {
+            throw new IllegalArgumentException("Location is required.");
+        }
+        this.bloodType = bloodType;
+        this.location = location;
+        this.consentToBeContacted = false;  // privacy: opt-in only
+        this.healthyToDonate = true;
+        this.reliabilityScore = 0.5;        // neutral starting score
+    }
+
+    @Override
+    public String getRole() {
+        return "Donor";
+    }
+
+    public BloodType getBloodType() { return bloodType; }
+    public Location getLocation() { return location; }
+    public boolean hasConsented() { return consentToBeContacted; }
+    public boolean isHealthyToDonate() { return healthyToDonate; }
+    public double getReliabilityScore() { return reliabilityScore; }
+
+    public void giveConsent() { consentToBeContacted = true; }
+    public void withdrawConsent() { consentToBeContacted = false; }
+
+    public void setHealthyToDonate(boolean healthy) {
+        this.healthyToDonate = healthy;
+    }
+
+    /** Responding to alerts raises the score; ignoring them lowers it. */
+    public void updateReliability(boolean responded) {
+        double change = responded ? 0.1 : -0.1;
+        reliabilityScore = Math.max(0.0, Math.min(1.0, reliabilityScore + change));
+    }
+}
