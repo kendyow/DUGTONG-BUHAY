@@ -3,8 +3,10 @@ package service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import exception.DuplicateRecordException;
 import exception.RecordNotFoundException;
@@ -13,6 +15,9 @@ import model.BloodRequest;
 import model.Donor;
 import model.Hospital;
 import model.HospitalStaff;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class Registry {
     private final List<Donor> donors = new ArrayList<>();
@@ -109,6 +114,13 @@ public class Registry {
     public List<Donor> getDonors() { return Collections.unmodifiableList(donors); }
     public List<Hospital> getHospitals() { return Collections.unmodifiableList(hospitals); }
     public List<BloodRequest> getRequests() { return Collections.unmodifiableList(requests); }
+
+    public List<HospitalStaff> getStaff() { return Collections.unmodifiableList(staff); }
+    public List<Admin> getAdmins() { return Collections.unmodifiableList(admins); }
+
+    public Set<String> getAlertedRequestIds() {
+        return new LinkedHashSet<>(alerted.keySet());
+    }
 
     public List<BloodRequest> getOpenRequestsFor(String hospitalName) {
         List<BloodRequest> open = new ArrayList<>();

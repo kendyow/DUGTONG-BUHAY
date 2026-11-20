@@ -111,5 +111,14 @@ public class Donor extends User implements Notifiable {
     @Override
     public List<String> getInbox() {
         return Collections.unmodifiableList(inbox);
+        
+    }
+
+        /** Used only when loading saved data. */
+    public void restoreReliability(double score) {
+        if (score < 0.0 || score > 1.0) {
+            throw new IllegalArgumentException("Reliability must be between 0.0 and 1.0.");
+        }
+        this.reliabilityScore = score;
     }
 }

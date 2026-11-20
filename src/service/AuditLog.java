@@ -19,4 +19,9 @@ public class AuditLog {
     public List<String> getEntries() {
         return Collections.unmodifiableList(entries);
     }
+
+        /** Used only when loading saved data: re-adds an already formatted entry. */
+    public void restoreEntry(String line) {
+        entries.add(line);
+    }
 }

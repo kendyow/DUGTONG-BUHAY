@@ -104,4 +104,37 @@ public class BloodRequest {
         return requestId + " | Needs " + bloodTypeNeeded + " x" + unitsNeeded
                 + " | " + urgency + " | " + hospitalName + " | " + status;
     }
+
+        // Private constructor: used ONLY when loading saved data
+    private BloodRequest(String requestId, String patientCode, BloodType bloodTypeNeeded,
+                         int unitsNeeded, UrgencyLevel urgency, String hospitalName,
+                         Location hospitalLocation, String requestedByStaffId,
+                         LocalDateTime createdAt, Status status) {
+        this.requestId = requestId;
+        this.patientCode = patientCode;
+        this.bloodTypeNeeded = bloodTypeNeeded;
+        this.unitsNeeded = unitsNeeded;
+        this.urgency = urgency;
+        this.hospitalName = hospitalName;
+        this.hospitalLocation = hospitalLocation;
+        this.requestedByStaffId = requestedByStaffId;
+        this.createdAt = createdAt;
+        this.status = status;
+    }
+
+    /** Rebuilds a saved request (keeps its original ID, time, and status). */
+    public static BloodRequest restore(String requestId, String patientCode,
+                                       BloodType bloodTypeNeeded, int unitsNeeded,
+                                       UrgencyLevel urgency, String hospitalName,
+                                       Location hospitalLocation, String requestedByStaffId,
+                                       LocalDateTime createdAt, Status status) {
+        // Keep the shared counter ahead of every loaded ID, so new IDs never repeat
+        String digits = requestId.replaceAll("\\D", "");
+        if (!digits.isEmpty()) {
+            counter = Math.max(counter, Integer.parseInt(digits));
+        }
+        return new BloodRequest(requestId, patientCode, bloodTypeNeeded, unitsNeeded,
+                urgency, hospitalName, hospitalLocation, requestedByStaffId,
+                createdAt, status);
+    }
 }

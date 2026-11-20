@@ -2,12 +2,14 @@ package service;
 
 import java.time.Month;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
 import model.BloodType;
 import model.Hospital;
+import java.util.Collections;
 
 public class StockForecast {
     private static final int WINDOW_WEEKS = 3;
@@ -30,6 +32,14 @@ public class StockForecast {
         }
         weeklyUsage.get(type).add(unitsUsed);
         weeklyDonations.get(type).add(unitsReceived);
+    }
+
+    public List<Integer> getUsageHistory(BloodType type) {
+    return Collections.unmodifiableList(weeklyUsage.get(type));
+    }
+
+    public List<Integer> getReceivedHistory(BloodType type) {
+        return Collections.unmodifiableList(weeklyDonations.get(type));
     }
 
     /** Average of the most recent weeks (0 if there is no history). */
