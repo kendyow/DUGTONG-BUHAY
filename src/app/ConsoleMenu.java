@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 
+import exception.DataStorageException;
 import exception.DugtongBuhayException;
 import exception.NoMatchFoundException;
 import exception.RecordNotFoundException;
@@ -20,6 +21,7 @@ import model.Platelets;
 import model.UrgencyLevel;
 import model.WholeBlood;
 import service.BalancedMatch;
+import service.DataStore;
 import service.HospitalFinder;
 import service.MatchingService;
 import service.MostReliableFirst;
@@ -29,12 +31,22 @@ import service.Registry;
 
 public class ConsoleMenu {
     private final Registry registry;
+    private final DataStore store;
     private final InputReader in = new InputReader();
     private final HospitalFinder finder = new HospitalFinder();
     private final MatchingService matching = new MatchingService(new BalancedMatch());
 
-    public ConsoleMenu(Registry registry) {
+    public ConsoleMenu(Registry registry, DataStore store) {
         this.registry = registry;
+        this.store = store;
+    }
+
+    private void autosave() {
+        try {
+            store.save(registry);
+        } catch (DataStorageException e) {
+            System.out.println("  ! Could not save changes: " + e.getMessage());
+        }
     }
 
     // =====================================================================
@@ -62,6 +74,8 @@ public class ConsoleMenu {
                 System.out.println("  ! " + e.getMessage());
             } catch (IllegalArgumentException | IllegalStateException e) {
                 System.out.println("  ! " + e.getMessage());
+            } finally {
+                autosave();
             }
         }
         System.out.println("Salamat! Goodbye.");
@@ -139,6 +153,8 @@ public class ConsoleMenu {
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
                 System.out.println("  ! " + e.getMessage());
+            } finally {
+                autosave();
             }
         }
     }
@@ -305,6 +321,10 @@ public class ConsoleMenu {
         Donor donor = (choice == 1) ? registerDonor()
                                     : registry.findDonor(in.readText("Donor ID (try D001): "));
 
+        if (choice == 1) {
+            autosave();
+        }
+
         boolean back = false;
         while (!back) {
             System.out.println("\n-- Donor menu: " + donor.getName() + " --");
@@ -340,6 +360,8 @@ public class ConsoleMenu {
                 }
             } catch (IllegalArgumentException | IllegalStateException e) {
                 System.out.println("  ! " + e.getMessage());
+            } finally {
+                autosave();
             }
         }
     }
@@ -432,6 +454,8 @@ public class ConsoleMenu {
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
                 System.out.println("  ! " + e.getMessage());
+            } finally {
+                autosave();
             }
         }
     }
