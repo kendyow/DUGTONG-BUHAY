@@ -193,8 +193,8 @@ Add these files to the `screenshots/` folder, then keep the lines below.
 | Member | Main contributions |
 |---|---|
 | Pasamba, Carl Kendy Vincent A. | Core Java application and Phase 9 Swing GUI integration. |
-| Cadelino, John Andrei | *(fill in: for example, menu design, screen flow, status colors)* |
-| Faltado, Rosceth | *(fill in: for example, README, test cases, screenshots, CSV tests)* |
+| Cadelino, John Andrei | menu design, screen flow, status colors |
+| Faltado, Rosceth | README, test cases, screenshots, CSV tests |
 
 Each member's work can be checked in the repository's commit history.
 
