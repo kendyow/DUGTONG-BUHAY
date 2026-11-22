@@ -10,7 +10,7 @@ Group 14 | OOP 101 - Object-Oriented Programming | College of Informatics and Co
 
 ## 1. Project Description
 
-DUGTONG-BUHAY ("lifeline") is a Java application with a console interface and a public Swing GUI that helps hospitals in the provinces find **eligible, consenting blood donors** of the needed type quickly, and helps the public find **nearby hospitals that have the blood they need**.
+DUGTONG-BUHAY ("lifeline") is a Java application with a console interface and a Swing desktop app that helps hospitals in the provinces find **eligible, consenting blood donors** of the needed type quickly, and helps the public find **nearby hospitals that have the blood they need**.
 
 The system:
 
@@ -120,24 +120,24 @@ DugtongBuhay/
 
 1. Clone the repository: `git clone https://github.com/kendyow/DUGTONG-BUHAY.git`
 2. In VS Code, choose *File > Open Folder* and open the cloned `DUGTONG-BUHAY` folder.
-3. Open `src/app/Main.java` and click **Run** above `main`.
-4. Use the TERMINAL panel for the console menus. To open the GUI instead, run `src/app/GuiMain.java`.
+3. Open `src/app/GuiMain.java` and click **Run** above `main`.
+4. In the desktop window, use the public tabs or open **Hospital Staff**, **Donor**, or **Admin**.
 
 **Option B: Terminal** (from the project folder)
 
 Windows:
 ```
 javac -encoding UTF-8 -d bin src\exception\*.java src\model\*.java src\service\*.java src\gui\*.java src\app\*.java
-java -cp bin app.Main
+java -cp bin app.GuiMain
 ```
 
 Mac / Linux:
 ```
 javac -encoding UTF-8 -d bin src/exception/*.java src/model/*.java src/service/*.java src/gui/*.java src/app/*.java
-java -cp bin app.Main
+java -cp bin app.GuiMain
 ```
 
-For the Swing GUI, run `java -cp bin app.GuiMain` after compiling. In **Find Blood Nearby**, select **B-**, **4** units, and **Batangas City**, then click **Search nearest hospitals**. Open **Hospital Stock Board** to view stock by hospital.
+The main window uses the same records for the public tabs and the role menus. Role dialogs accept the numbered options shown on screen. Use **Cancel** to return to the main window. To use the terminal menus, run `java -cp bin app.Main`. In **Find Blood Nearby**, select **B-**, **4** units, and **Batangas City**, then click **Search nearest hospitals**. Open **Hospital Stock Board** to view stock by hospital.
 
 **Sample accounts (created on the first run):**
 
@@ -169,7 +169,7 @@ Add these files to the `screenshots/` folder, then keep the lines below.
 ## 12. Known Limitations
 
 - Distances are straight-line (great-circle) distances, not road routes or travel times.
-- The Swing GUI covers public hospital search and the stock board. Donor, staff, and admin workflows use the console.
+- The desktop app uses numbered dialogs for donor, staff, and admin workflows.
 - The built-in map is an offline overview. OpenStreetMap directions require a browser and internet access.
 - Login is by ID only, with no passwords.
 - CSV files are plain text and not encrypted. A real deployment would need a secured database.

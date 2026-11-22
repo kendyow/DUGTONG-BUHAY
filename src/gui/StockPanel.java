@@ -65,7 +65,7 @@ public class StockPanel extends JPanel {
         JPanel bottom = new JPanel(new BorderLayout(0, 6));
         bottom.add(summaryLabel, BorderLayout.NORTH);
         bottom.add(new JLabel("<html><i>OK: more than 10 units. LOW: 4 to 10. CRITICAL: 1 to 3. OUT: 0. "
-                + "Stock is changed by hospital staff in the console program.</i></html>"),
+                + "Hospital staff can update stock from the Hospital Staff menu.</i></html>"),
                 BorderLayout.CENTER);
         add(bottom, BorderLayout.SOUTH);
 

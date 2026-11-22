@@ -2,17 +2,21 @@ package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Toolkit;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.JTabbedPane;
 import javax.swing.border.EmptyBorder;
 
+import app.ConsoleMenu.Role;
 import service.DataStore;
 import service.Registry;
 
-/** The main window: two tabs, one for the map search and one for the stock board. */
+/** Public search and stock tabs with access to the three role workflows. */
 public class MainWindow extends JFrame {
 
     public MainWindow(Registry registry, DataStore store) {
@@ -35,6 +39,12 @@ public class MainWindow extends JFrame {
         footer.setBorder(new EmptyBorder(4, 10, 6, 10));
 
         setLayout(new BorderLayout());
+        RoleDialogs roles = new RoleDialogs(this, registry, store);
+        JPanel roleBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        addRoleButton(roleBar, "Hospital Staff", Role.STAFF, roles, finderPanel, stockPanel);
+        addRoleButton(roleBar, "Donor", Role.DONOR, roles, finderPanel, stockPanel);
+        addRoleButton(roleBar, "Admin", Role.ADMIN, roles, finderPanel, stockPanel);
+        add(roleBar, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
 
@@ -42,5 +52,15 @@ public class MainWindow extends JFrame {
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
         setSize(Math.min(1100, screen.width - 40), Math.min(760, screen.height - 80));
         setLocationRelativeTo(null);
+    }
+    private void addRoleButton(JPanel bar, String label, Role role, RoleDialogs roles,
+            FinderPanel finder, StockPanel stock) {
+        JButton button = new JButton(label);
+        button.addActionListener(e -> {
+            roles.open(label, role);
+            finder.refreshAfterRole();
+            stock.refresh();
+        });
+        bar.add(button);
     }
 }

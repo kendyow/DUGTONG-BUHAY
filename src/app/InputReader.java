@@ -1,6 +1,8 @@
 package app;
 
+import java.io.PrintWriter;
 import java.util.Scanner;
+import java.util.function.Function;
 
 import exception.InvalidInputException;
 import model.BloodType;
@@ -12,7 +14,27 @@ public class InputReader {
         T parse(String text) throws InvalidInputException;
     }
 
-    private final Scanner scanner = new Scanner(System.in);
+    private final Function<String, String> read;
+    private final PrintWriter out;
+
+    public InputReader() {
+        this(new PrintWriter(System.out, true));
+    }
+
+    InputReader(PrintWriter out) {
+        Scanner scanner = new Scanner(System.in);
+        this.out = out;
+        this.read = prompt -> {
+            out.print(prompt);
+            out.flush();
+            return scanner.nextLine();
+        };
+    }
+
+    public InputReader(PrintWriter out, Function<String, String> read) {
+        this.out = out;
+        this.read = read;
+    }
 
     // ---------- parsing rules (static, so they are easy to test) ----------
     public static String parseText(String text) throws InvalidInputException {
@@ -66,17 +88,12 @@ public class InputReader {
     }
 
     // ---------- reading (keeps asking until the input is valid) ----------
-    private String readLine(String prompt) {
-        System.out.print(prompt);
-        return scanner.nextLine();
-    }
-
     private <T> T readValid(String prompt, Parser<T> parser) {
         while (true) {
             try {
-                return parser.parse(readLine(prompt));
+                return parser.parse(read.apply(prompt));
             } catch (InvalidInputException e) {
-                System.out.println("  ! " + e.getMessage());
+                out.println("  ! " + e.getMessage());
             }
         }
     }
