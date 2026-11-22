@@ -10,7 +10,7 @@ Group 14 | OOP 101 - Object-Oriented Programming | College of Informatics and Co
 
 ## 1. Project Description
 
-DUGTONG-BUHAY ("lifeline") is a Java console application that helps hospitals in the provinces find **eligible, consenting blood donors** of the needed type quickly, and helps the public find **nearby hospitals that have the blood they need**.
+DUGTONG-BUHAY ("lifeline") is a Java application with a console interface and a public Swing GUI that helps hospitals in the provinces find **eligible, consenting blood donors** of the needed type quickly, and helps the public find **nearby hospitals that have the blood they need**.
 
 The system:
 
@@ -61,14 +61,14 @@ The Philippines has a continuing blood shortage, and B-negative is among the rar
 | Reliability score | Rises when a donor accepts an alert and falls when a donor declines |
 | Hospital stock board | Stock per blood type with OK / LOW / CRITICAL / OUT warnings |
 | Shortage forecast | Moving average of past usage and donations with a holiday factor |
-| Public hospital search | Nearest hospitals that can supply the needed blood |
+| Public hospital search | Interactive Philippines map and nearest hospitals with enough compatible stock |
 | Audit log | Records who did what and when |
 | Data persistence | Autosaves to CSV files in the `data/` folder |
 | Privacy by design | Opt-in consent, patient codes instead of names, contact details shared only after a donor accepts |
 
 ## 6. Technologies Used
 
-- Java 17 or newer (core Java only, no third-party libraries)
+- Java 17 or newer, with Swing for the desktop GUI
 - `java.time` for dates, `java.nio.file` for file handling
 - Visual Studio Code with the Extension Pack for Java
 - Git and GitHub for version control
@@ -96,7 +96,8 @@ The Philippines has a continuing blood shortage, and B-negative is among the rar
 ```
 DugtongBuhay/
 ├── src/
-│   ├── app/         Main, ConsoleMenu, InputReader, SystemTests
+│   ├── app/         Main, GuiMain, ConsoleMenu, InputReader, SystemTests
+│   ├── gui/         MainWindow, FinderPanel, MapPanel, StockPanel
 │   ├── model/       BloodType, Location, GeoUtils, User, Donor, HospitalStaff, Admin,
 │   │                Donation, WholeBlood, Platelets, Plasma, UrgencyLevel,
 │   │                BloodRequest, Hospital, Notifiable
@@ -117,24 +118,26 @@ DugtongBuhay/
 
 **Option A: VS Code**
 
-1. Clone the repository: `git clone <your-repo-url>`
-2. In VS Code, choose *File > Open Folder* and open the `DugtongBuhay` folder.
+1. Clone the repository: `git clone https://github.com/kendyow/DUGTONG-BUHAY.git`
+2. In VS Code, choose *File > Open Folder* and open the cloned `DUGTONG-BUHAY` folder.
 3. Open `src/app/Main.java` and click **Run** above `main`.
-4. Click inside the TERMINAL panel and type your answers there.
+4. Use the TERMINAL panel for the console menus. To open the GUI instead, run `src/app/GuiMain.java`.
 
 **Option B: Terminal** (from the project folder)
 
 Windows:
 ```
-javac -d bin src\exception\*.java src\model\*.java src\service\*.java src\app\*.java
+javac -encoding UTF-8 -d bin src\exception\*.java src\model\*.java src\service\*.java src\gui\*.java src\app\*.java
 java -cp bin app.Main
 ```
 
 Mac / Linux:
 ```
-javac -d bin src/exception/*.java src/model/*.java src/service/*.java src/app/*.java
+javac -encoding UTF-8 -d bin src/exception/*.java src/model/*.java src/service/*.java src/gui/*.java src/app/*.java
 java -cp bin app.Main
 ```
+
+For the Swing GUI, run `java -cp bin app.GuiMain` after compiling. In **Find Blood Nearby**, select **B-**, **4** units, and **Batangas City**, then click **Search nearest hospitals**. Open **Hospital Stock Board** to view stock by hospital.
 
 **Sample accounts (created on the first run):**
 
@@ -146,7 +149,7 @@ java -cp bin app.Main
 
 **Run the automated tests:** run `src/app/SystemTests.java`, or in the terminal use `java -cp bin app.SystemTests`. All checks should print `PASS`.
 
-**Reset the demo data:** delete the `data/` folder. The sample data is recre[Uploading UML-Diagram.md…]()ated on the next run.
+**Reset the demo data:** delete the `data/` folder. The sample data is recreated on the next run.
 
 ## 11. Sample Screenshots
 
@@ -160,22 +163,25 @@ Add these files to the `screenshots/` folder, then keep the lines below.
 ![Shortage forecast](screenshots/06-forecast.png)
 ![Audit log](screenshots/07-audit-log.png)
 ![Automated tests](screenshots/08-automated-tests.png)
+![GUI map and hospital search](screenshots/09-gui-map.png)
+![GUI hospital stock board](screenshots/10-gui-stock.png)
 
 ## 12. Known Limitations
 
 - Distances are straight-line (great-circle) distances, not road routes or travel times.
+- The Swing GUI covers public hospital search and the stock board. Donor, staff, and admin workflows use the console.
+- The built-in map is an offline overview. OpenStreetMap directions require a browser and internet access.
 - Login is by ID only, with no passwords.
 - CSV files are plain text and not encrypted. A real deployment would need a secured database.
 - Donor replies are entered by hospital staff to simulate a phone or app reply.
 - Alerts are shown inside the program. No real SMS or email is sent.
-- The shortage forecast is a 3-week moving average with an assumed holiday factor. It is a simple statistical estimate, not machine learning.
+- The Java shortage forecast uses a 3-week moving average with an assumed holiday factor.
 - Waiting periods between donations are placeholders and not medical guidance.
 - A donor's alert inbox is not saved between runs.
 - Only one person can use the program at a time.
 
 ## 13. Future Improvements
 
-- Swing graphical interface with a Philippines map for locating the nearest available blood type
 - Real road distances through a routing service
 - Database storage with password-protected accounts
 - SMS or app notifications to donors
@@ -186,7 +192,7 @@ Add these files to the `screenshots/` folder, then keep the lines below.
 
 | Member | Main contributions |
 |---|---|
-| Pasamba, Carl Kendy Vincent A. | *(fill in: for example, core model classes, matching service, persistence)* |
+| Pasamba, Carl Kendy Vincent A. | Core Java application and Phase 9 Swing GUI integration. |
 | Cadelino, John Andrei | *(fill in: for example, menu design, screen flow, status colors)* |
 | Faltado, Rosceth | *(fill in: for example, README, test cases, screenshots, CSV tests)* |
 
