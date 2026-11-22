@@ -79,6 +79,14 @@ public class FinderPanel extends JPanel {
         showSelected(null);
     }
 
+    public void refreshAfterRole() {
+        refresh();
+        if (searchOrigin != null) {
+            clearResults();
+            setStatus("Press Search to see current stock.");
+        }
+    }
+
     /** Called when this tab is shown again, so the pins use the latest stock. */
     public void refresh() {
         map.setHospitals(registry.getHospitals());

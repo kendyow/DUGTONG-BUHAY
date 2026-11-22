@@ -1,5 +1,6 @@
 package app;
 
+import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
@@ -32,20 +33,48 @@ import service.Registry;
 public class ConsoleMenu {
     private final Registry registry;
     private final DataStore store;
-    private final InputReader in = new InputReader();
+    private final InputReader in;
+    private final PrintWriter out;
     private final HospitalFinder finder = new HospitalFinder();
     private final MatchingService matching = new MatchingService(new BalancedMatch());
 
     public ConsoleMenu(Registry registry, DataStore store) {
         this.registry = registry;
         this.store = store;
+        this.out = new PrintWriter(System.out, true);
+        this.in = new InputReader(out);
+    }
+
+    public ConsoleMenu(Registry registry, DataStore store, InputReader in, PrintWriter out) {
+        this.registry = registry;
+        this.store = store;
+        this.in = in;
+        this.out = out;
+    }
+
+    public enum Role {
+        STAFF, DONOR, ADMIN
+    }
+
+    public void runRole(Role role) {
+        try {
+            switch (role) {
+                case STAFF -> staffMenu();
+                case DONOR -> donorMenu();
+                case ADMIN -> adminMenu();
+            }
+        } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
+            out.println("  ! " + e.getMessage());
+        } finally {
+            autosave();
+        }
     }
 
     private void autosave() {
         try {
             store.save(registry);
         } catch (DataStorageException e) {
-            System.out.println("  ! Could not save changes: " + e.getMessage());
+            out.println("  ! Could not save changes: " + e.getMessage());
         }
     }
 
@@ -55,12 +84,12 @@ public class ConsoleMenu {
     public void run() {
         boolean running = true;
         while (running) {
-            System.out.println("\n=== DUGTONG-BUHAY ===");
-            System.out.println("1. Find blood nearby (public)");
-            System.out.println("2. Hospital staff");
-            System.out.println("3. Donor");
-            System.out.println("4. Admin");
-            System.out.println("0. Exit");
+            out.println("\n=== DUGTONG-BUHAY ===");
+            out.println("1. Find blood nearby (public)");
+            out.println("2. Hospital staff");
+            out.println("3. Donor");
+            out.println("4. Admin");
+            out.println("0. Exit");
             int choice = in.readInt("Choose: ", 0, 4);
             try {
                 switch (choice) {
@@ -71,21 +100,21 @@ public class ConsoleMenu {
                     default: running = false;
                 }
             } catch (DugtongBuhayException e) {
-                System.out.println("  ! " + e.getMessage());
+                out.println("  ! " + e.getMessage());
             } catch (IllegalArgumentException | IllegalStateException e) {
-                System.out.println("  ! " + e.getMessage());
+                out.println("  ! " + e.getMessage());
             } finally {
                 autosave();
             }
         }
-        System.out.println("Salamat! Goodbye.");
+        out.println("Salamat! Goodbye.");
     }
 
     // =====================================================================
     //  PUBLIC: find hospitals that have the blood (no donor data shown)
     // =====================================================================
     private void publicSearch() throws NoMatchFoundException {
-        System.out.println("\n-- Find blood nearby --");
+        out.println("\n-- Find blood nearby --");
         BloodType type = in.readBloodType("Blood type needed (e.g. O-, A+): ");
         int units = in.readInt("Units needed (1-10): ", 1, 10);
         Location here = chooseLocation("Where are you?");
@@ -98,19 +127,19 @@ public class ConsoleMenu {
             throw new NoMatchFoundException(
                     "No hospital in the system can supply " + units + " unit(s) for " + type + " right now.");
         }
-        System.out.println("Hospitals that can supply " + units + " unit(s) for " + type + ":");
+        out.println("Hospitals that can supply " + units + " unit(s) for " + type + ":");
         int rank = 1;
         for (Hospital h : found) {
-            System.out.printf("%d. %s | %.1f km | compatible units: %d%n", rank++,
+            out.printf("%d. %s | %.1f km | compatible units: %d%n", rank++,
                     h.getName(), h.getLocation().distanceKmTo(here), h.getCompatibleUnits(type));
         }
     }
 
     private Location chooseLocation(String prompt) {
         List<Location> places = PlaceCatalog.getAll();
-        System.out.println(prompt);
+        out.println(prompt);
         for (int i = 0; i < places.size(); i++) {
-            System.out.println("  " + (i + 1) + ". " + places.get(i).getName());
+            out.println("  " + (i + 1) + ". " + places.get(i).getName());
         }
         int pick = in.readInt("Choose a place: ", 1, places.size());
         return places.get(pick - 1);
@@ -124,20 +153,20 @@ public class ConsoleMenu {
         HospitalStaff staff = registry.findStaff(id);
         Hospital hospital = registry.findHospitalByName(staff.getHospitalName());
         registry.getAuditLog().record(staff.getId(), "Logged in");
-        System.out.println("Welcome, " + staff.getName() + " of " + hospital.getName());
+        out.println("Welcome, " + staff.getName() + " of " + hospital.getName());
 
         boolean back = false;
         while (!back) {
-            System.out.println("\n-- Staff menu --");
-            System.out.println("1. Stock board");
-            System.out.println("2. Add stock (units received)");
-            System.out.println("3. Use stock (units given to a patient)");
-            System.out.println("4. Post a blood request and find donors");
-            System.out.println("5. Record a donor's reply");
-            System.out.println("6. Mark a request fulfilled");
-            System.out.println("7. Shortage forecast");
-            System.out.println("8. My inbox");
-            System.out.println("0. Back");
+            out.println("\n-- Staff menu --");
+            out.println("1. Stock board");
+            out.println("2. Add stock (units received)");
+            out.println("3. Use stock (units given to a patient)");
+            out.println("4. Post a blood request and find donors");
+            out.println("5. Record a donor's reply");
+            out.println("6. Mark a request fulfilled");
+            out.println("7. Shortage forecast");
+            out.println("8. My inbox");
+            out.println("0. Back");
             int choice = in.readInt("Choose: ", 0, 8);
             try {
                 switch (choice) {
@@ -152,7 +181,7 @@ public class ConsoleMenu {
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
-                System.out.println("  ! " + e.getMessage());
+                out.println("  ! " + e.getMessage());
             } finally {
                 autosave();
             }
@@ -160,12 +189,12 @@ public class ConsoleMenu {
     }
 
     private void showStockBoard(Hospital hospital) {
-        System.out.println("\nSTOCK BOARD - " + hospital.getName());
+        out.println("\nSTOCK BOARD - " + hospital.getName());
         for (BloodType t : BloodType.values()) {
-            System.out.printf("%-4s %3d units  %s%n", t, hospital.getUnits(t), hospital.getStatus(t));
+            out.printf("%-4s %3d units  %s%n", t, hospital.getUnits(t), hospital.getStatus(t));
         }
-        System.out.println("Total units: " + hospital.getTotalUnits());
-        System.out.println("Needs attention: " + hospital.getLowStockTypes());
+        out.println("Total units: " + hospital.getTotalUnits());
+        out.println("Needs attention: " + hospital.getLowStockTypes());
     }
 
     private void changeStock(Hospital hospital, HospitalStaff staff, boolean adding) {
@@ -178,12 +207,12 @@ public class ConsoleMenu {
             hospital.useUnits(type, units);      // may throw IllegalStateException
             registry.getAuditLog().record(staff.getId(), "Used " + units + " x " + type);
         }
-        System.out.println("  " + type + " now: " + hospital.getUnits(type)
+        out.println("  " + type + " now: " + hospital.getUnits(type)
                 + " (" + hospital.getStatus(type) + ")");
     }
 
     private void postRequestAndMatch(HospitalStaff staff) throws NoMatchFoundException {
-        System.out.println("\n-- New blood request (use a patient CODE, never a real name) --");
+        out.println("\n-- New blood request (use a patient CODE, never a real name) --");
         String code = in.readText("Patient code (e.g. PT-0042): ");
         BloodType type = in.readBloodType("Blood type needed: ");
         int units = in.readInt("Units needed (1-10): ", 1, 10);
@@ -193,7 +222,7 @@ public class ConsoleMenu {
         registry.addRequest(request);
         registry.getAuditLog().record(staff.getId(), "Posted " + request.getRequestId()
                 + " (" + type + ", " + urgency + ")");
-        System.out.println("Posted: " + request);
+        out.println("Posted: " + request);
 
         chooseStrategy();
         List<Donor> ranked = matching.findMatches(registry.getDonors(), request, LocalDate.now());
@@ -202,10 +231,10 @@ public class ConsoleMenu {
                     + urgency.getSearchRadiusKm() + " km. Request stays open.");
         }
 
-        System.out.println("Ranked donors (" + matching.getStrategy().getName() + "):");
+        out.println("Ranked donors (" + matching.getStrategy().getName() + "):");
         int rank = 1;
         for (Donor d : ranked) {
-            System.out.printf("%d. %s %s | %.1f km | reliability %.2f%n", rank++,
+            out.printf("%d. %s %s | %.1f km | reliability %.2f%n", rank++,
                     d.getId(), d.getName(),
                     staff.getHospitalLocation().distanceKmTo(d.getLocation()),
                     d.getReliabilityScore());
@@ -217,14 +246,14 @@ public class ConsoleMenu {
             registry.getAuditLog().record(staff.getId(),
                     "Alerted donor " + d.getId() + " for " + request.getRequestId());
         }
-        System.out.println("Alerts sent to " + alerted.size() + " donor(s).");
+        out.println("Alerts sent to " + alerted.size() + " donor(s).");
     }
 
     private UrgencyLevel chooseUrgency() {
         UrgencyLevel[] levels = UrgencyLevel.values();
-        System.out.println("Urgency levels:");
+        out.println("Urgency levels:");
         for (int i = 0; i < levels.length; i++) {
-            System.out.printf("  %d. %s - radius %.0f km, respond within %d min%n", i + 1,
+            out.printf("  %d. %s - radius %.0f km, respond within %d min%n", i + 1,
                     levels[i], levels[i].getSearchRadiusKm(), levels[i].getResponseWindowMinutes());
         }
         int pick = in.readInt("Choose urgency: ", 1, levels.length);
@@ -232,10 +261,10 @@ public class ConsoleMenu {
     }
 
     private void chooseStrategy() {
-        System.out.println("Ranking strategy:");
-        System.out.println("  1. Nearest first");
-        System.out.println("  2. Most reliable first");
-        System.out.println("  3. Balanced (recommended)");
+        out.println("Ranking strategy:");
+        out.println("  1. Nearest first");
+        out.println("  2. Most reliable first");
+        out.println("  3. Balanced (recommended)");
         int pick = in.readInt("Choose: ", 1, 3);
         switch (pick) {
             case 1: matching.setStrategy(new NearestFirst()); break;
@@ -249,9 +278,9 @@ public class ConsoleMenu {
         if (open.isEmpty()) {
             throw new RecordNotFoundException("No open requests for " + hospital.getName() + ".");
         }
-        System.out.println("Open requests:");
+        out.println("Open requests:");
         for (int i = 0; i < open.size(); i++) {
-            System.out.println("  " + (i + 1) + ". " + open.get(i));
+            out.println("  " + (i + 1) + ". " + open.get(i));
         }
         int pick = in.readInt("Choose a request: ", 1, open.size());
         return open.get(pick - 1);
@@ -265,9 +294,9 @@ public class ConsoleMenu {
             throw new RecordNotFoundException(
                     "No donors are waiting to reply to " + request.getRequestId() + ".");
         }
-        System.out.println("Donors who were alerted:");
+        out.println("Donors who were alerted:");
         for (int i = 0; i < waiting.size(); i++) {
-            System.out.println("  " + (i + 1) + ". " + waiting.get(i).getId()
+            out.println("  " + (i + 1) + ". " + waiting.get(i).getId()
                     + " " + waiting.get(i).getName());
         }
         int pick = in.readInt("Which donor replied? ", 1, waiting.size());
@@ -278,7 +307,7 @@ public class ConsoleMenu {
         registry.removeAlerted(request.getRequestId(), donor);
         registry.getAuditLog().record(staff.getId(), "Donor " + donor.getId()
                 + (accepted ? " accepted " : " declined ") + request.getRequestId());
-        System.out.println(accepted
+        out.println(accepted
                 ? "Accepted. The donor's contact details were sent to your inbox."
                 : "Declined. The donor's reliability score was lowered.");
     }
@@ -287,14 +316,14 @@ public class ConsoleMenu {
         BloodRequest request = pickOpenRequest(hospital);
         request.fulfill();
         registry.getAuditLog().record(staff.getId(), "Fulfilled " + request.getRequestId());
-        System.out.println(request.getRequestId() + " is now " + request.getStatus() + ".");
+        out.println(request.getRequestId() + " is now " + request.getStatus() + ".");
     }
 
     private void showForecast(Hospital hospital) {
         Month month = LocalDate.now().getMonth();
-        System.out.println("\nSHORTAGE FORECAST for " + month + " (" + hospital.getName() + ")");
+        out.println("\nSHORTAGE FORECAST for " + month + " (" + hospital.getName() + ")");
         for (BloodType t : BloodType.values()) {
-            System.out.printf("%-4s now %3d | projected %6.1f | %s%n", t, hospital.getUnits(t),
+            out.printf("%-4s now %3d | projected %6.1f | %s%n", t, hospital.getUnits(t),
                     registry.getForecast().projectedStock(hospital, t, month),
                     registry.getForecast().isShortageRisk(hospital, t, month) ? "AT RISK" : "ok");
         }
@@ -303,11 +332,11 @@ public class ConsoleMenu {
     private void showInbox(HospitalStaff staff) {
         List<String> inbox = staff.getInbox();
         if (inbox.isEmpty()) {
-            System.out.println("No messages.");
+            out.println("No messages.");
             return;
         }
         for (String message : inbox) {
-            System.out.println("- " + message);
+            out.println("- " + message);
         }
     }
 
@@ -315,8 +344,8 @@ public class ConsoleMenu {
     //  DONOR
     // =====================================================================
     private void donorMenu() throws DugtongBuhayException {
-        System.out.println("1. Register as a new donor");
-        System.out.println("2. I am already registered");
+        out.println("1. Register as a new donor");
+        out.println("2. I am already registered");
         int choice = in.readInt("Choose: ", 1, 2);
         Donor donor = (choice == 1) ? registerDonor()
                                     : registry.findDonor(in.readText("Donor ID (try D001): "));
@@ -327,14 +356,14 @@ public class ConsoleMenu {
 
         boolean back = false;
         while (!back) {
-            System.out.println("\n-- Donor menu: " + donor.getName() + " --");
-            System.out.println("1. My profile and eligibility");
-            System.out.println("2. Give consent to receive alerts");
-            System.out.println("3. Withdraw consent");
-            System.out.println("4. Record a donation");
-            System.out.println("5. My alerts");
-            System.out.println("6. Update my health status");
-            System.out.println("0. Back");
+            out.println("\n-- Donor menu: " + donor.getName() + " --");
+            out.println("1. My profile and eligibility");
+            out.println("2. Give consent to receive alerts");
+            out.println("3. Withdraw consent");
+            out.println("4. Record a donation");
+            out.println("5. My alerts");
+            out.println("6. Update my health status");
+            out.println("0. Back");
             int pick = in.readInt("Choose: ", 0, 6);
             try {
                 switch (pick) {
@@ -342,24 +371,24 @@ public class ConsoleMenu {
                     case 2:
                         donor.giveConsent();
                         registry.getAuditLog().record(donor.getId(), "Gave consent");
-                        System.out.println("Thank you! You may now receive emergency alerts.");
+                        out.println("Thank you! You may now receive emergency alerts.");
                         break;
                     case 3:
                         donor.withdrawConsent();
                         registry.getAuditLog().record(donor.getId(), "Withdrew consent");
-                        System.out.println("Consent withdrawn. You will not receive alerts.");
+                        out.println("Consent withdrawn. You will not receive alerts.");
                         break;
                     case 4: recordDonationFor(donor); break;
                     case 5: showAlerts(donor); break;
                     case 6:
                         donor.setHealthyToDonate(in.readYesNo("Are you well and fit to donate? (y/n): "));
                         registry.getAuditLog().record(donor.getId(), "Updated health status");
-                        System.out.println("Status updated.");
+                        out.println("Status updated.");
                         break;
                     default: back = true;
                 }
             } catch (IllegalArgumentException | IllegalStateException e) {
-                System.out.println("  ! " + e.getMessage());
+                out.println("  ! " + e.getMessage());
             } finally {
                 autosave();
             }
@@ -367,7 +396,7 @@ public class ConsoleMenu {
     }
 
     private Donor registerDonor() throws DugtongBuhayException {
-        System.out.println("\n-- Donor registration --");
+        out.println("\n-- Donor registration --");
         String name = in.readText("Full name: ");
         String phone = in.readPhone("Mobile number (09XXXXXXXXX): ");
         BloodType type = in.readBloodType("Your blood type: ");
@@ -376,31 +405,31 @@ public class ConsoleMenu {
         Donor donor = new Donor(registry.nextDonorId(), name, phone, type, place);
         registry.addDonor(donor);   // may throw DuplicateRecordException
         registry.getAuditLog().record(donor.getId(), "Registered");
-        System.out.println("Registered! Your Donor ID is " + donor.getId() + ".");
-        System.out.println("You will NOT receive alerts until you give consent (option 2).");
+        out.println("Registered! Your Donor ID is " + donor.getId() + ".");
+        out.println("You will NOT receive alerts until you give consent (option 2).");
         return donor;
     }
 
     private void showProfile(Donor donor) {
         LocalDate today = LocalDate.now();
-        System.out.println(donor);
-        System.out.println("  Blood type   : " + donor.getBloodType());
-        System.out.println("  Location     : " + donor.getLocation().getName());
-        System.out.println("  Consent      : " + (donor.hasConsented() ? "YES" : "NO"));
-        System.out.println("  Fit to donate: " + (donor.isHealthyToDonate() ? "YES" : "NO"));
-        System.out.printf("  Reliability  : %.2f%n", donor.getReliabilityScore());
-        System.out.println("  Can donate today? " + donor.canDonate(today));
-        System.out.println("  Next eligible: " + donor.getNextEligibleDate(today));
+        out.println(donor);
+        out.println("  Blood type   : " + donor.getBloodType());
+        out.println("  Location     : " + donor.getLocation().getName());
+        out.println("  Consent      : " + (donor.hasConsented() ? "YES" : "NO"));
+        out.println("  Fit to donate: " + (donor.isHealthyToDonate() ? "YES" : "NO"));
+        out.printf("  Reliability  : %.2f%n", donor.getReliabilityScore());
+        out.println("  Can donate today? " + donor.canDonate(today));
+        out.println("  Next eligible: " + donor.getNextEligibleDate(today));
         if (donor.getDonationHistory().isEmpty()) {
-            System.out.println("  No donations recorded yet.");
+            out.println("  No donations recorded yet.");
         }
         for (Donation d : donor.getDonationHistory()) {
-            System.out.println("  - " + d);
+            out.println("  - " + d);
         }
     }
 
     private void recordDonationFor(Donor donor) {
-        System.out.println("1. Whole Blood   2. Platelets   3. Plasma");
+        out.println("1. Whole Blood   2. Platelets   3. Plasma");
         int type = in.readInt("Donation type: ", 1, 3);
         int daysAgo = in.readInt("How many days ago? (0-365): ", 0, 365);
         LocalDate date = LocalDate.now().minusDays(daysAgo);
@@ -413,17 +442,17 @@ public class ConsoleMenu {
         }
         donor.recordDonation(donation);
         registry.getAuditLog().record(donor.getId(), "Recorded " + donation.getTypeName());
-        System.out.println("Saved: " + donation);
+        out.println("Saved: " + donation);
     }
 
     private void showAlerts(Donor donor) {
         List<String> inbox = donor.getInbox();
         if (inbox.isEmpty()) {
-            System.out.println("No alerts.");
+            out.println("No alerts.");
             return;
         }
         for (String message : inbox) {
-            System.out.println("- " + message);
+            out.println("- " + message);
         }
     }
 
@@ -433,16 +462,16 @@ public class ConsoleMenu {
     private void adminMenu() throws DugtongBuhayException {
         String id = in.readText("Admin ID (try A001): ");
         Admin admin = registry.findAdmin(id);
-        System.out.println("Welcome, " + admin.getName());
+        out.println("Welcome, " + admin.getName());
 
         boolean back = false;
         while (!back) {
-            System.out.println("\n-- Admin menu --");
-            System.out.println("1. List donors");
-            System.out.println("2. Withdraw a donor's consent (privacy request)");
-            System.out.println("3. View audit log");
-            System.out.println("4. System summary");
-            System.out.println("0. Back");
+            out.println("\n-- Admin menu --");
+            out.println("1. List donors");
+            out.println("2. Withdraw a donor's consent (privacy request)");
+            out.println("3. View audit log");
+            out.println("4. System summary");
+            out.println("0. Back");
             int choice = in.readInt("Choose: ", 0, 4);
             try {
                 switch (choice) {
@@ -453,7 +482,7 @@ public class ConsoleMenu {
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
-                System.out.println("  ! " + e.getMessage());
+                out.println("  ! " + e.getMessage());
             } finally {
                 autosave();
             }
@@ -463,7 +492,7 @@ public class ConsoleMenu {
     private void listDonors() {
         LocalDate today = LocalDate.now();
         for (Donor d : registry.getDonors()) {
-            System.out.printf("%s | %-16s | %-3s | consent=%-5b | eligible=%b%n",
+            out.printf("%s | %-16s | %-3s | consent=%-5b | eligible=%b%n",
                     d.getId(), d.getName(), d.getBloodType(), d.hasConsented(), d.canDonate(today));
         }
     }
@@ -472,17 +501,17 @@ public class ConsoleMenu {
         Donor donor = registry.findDonor(in.readText("Donor ID: "));
         admin.forceWithdrawConsent(donor);
         registry.getAuditLog().record(admin.getId(), "Withdrew consent of " + donor.getId());
-        System.out.println("Consent withdrawn for " + donor.getName() + ".");
+        out.println("Consent withdrawn for " + donor.getName() + ".");
     }
 
     private void showAuditLog() {
         List<String> entries = registry.getAuditLog().getEntries();
         if (entries.isEmpty()) {
-            System.out.println("Audit log is empty.");
+            out.println("Audit log is empty.");
             return;
         }
         for (String entry : entries) {
-            System.out.println(entry);
+            out.println(entry);
         }
     }
 
@@ -499,8 +528,8 @@ public class ConsoleMenu {
                 open++;
             }
         }
-        System.out.println("Donors: " + registry.getDonors().size() + " (" + consented + " consenting)");
-        System.out.println("Hospitals: " + registry.getHospitals().size());
-        System.out.println("Requests: " + registry.getRequests().size() + " (" + open + " open)");
+        out.println("Donors: " + registry.getDonors().size() + " (" + consented + " consenting)");
+        out.println("Hospitals: " + registry.getHospitals().size());
+        out.println("Requests: " + registry.getRequests().size() + " (" + open + " open)");
     }
 }
