@@ -127,21 +127,31 @@ DugtongBuhay/
 
 Windows:
 ```
-javac -encoding UTF-8 -d bin src\exception\*.java src\model\*.java src\service\*.java src\gui\*.java src\auth\*.java src\app\*.java
+javac --release 17 -encoding UTF-8 -d bin src\exception\*.java src\model\*.java src\service\*.java src\gui\*.java src\auth\*.java src\app\*.java
 java -cp bin app.GuiMain
 ```
 
 Mac / Linux:
 ```
-javac -encoding UTF-8 -d bin src/exception/*.java src/model/*.java src/service/*.java src/gui/*.java src/auth/*.java src/app/*.java
+javac --release 17 -encoding UTF-8 -d bin src/exception/*.java src/model/*.java src/service/*.java src/gui/*.java src/auth/*.java src/app/*.java
 java -cp bin app.GuiMain
 ```
 
 The main window uses the same records for the public tabs and the role menus. Role dialogs accept the numbered options shown on screen. Use **Cancel** to return to the main window. To use the terminal menus, run `java -cp bin app.Main`. In **Find Blood Nearby**, select **B-**, **4** units, and **Batangas City**, then click **Search nearest hospitals**. Open **Hospital Stock Board** to view stock by hospital.
 
-**Sample accounts (created on the first run):**
+**Set up passwords for existing profiles**
 
-| Role | ID to type |
+From an interactive terminal in the project folder, run the command below to set the first password for the sample administrator. Enter and confirm a password of at least 15 characters when prompted. The local operator can repeat this for the other sample IDs. This setup command is for someone trusted to manage the local data folder and can only assign a first password.
+
+```powershell
+java -cp bin app.Main --setup-account A001
+```
+
+For a desktop password dialog, use `java -cp bin app.GuiMain --setup-account A001`.
+
+Select the appropriate role in Swing or the console and sign in with the ID and password. New donors choose a password during registration. Public search and the stock board are available without signing in.
+
+| Role | Sample profile IDs |
 |---|---|
 | Hospital staff | `S001` (Batangas Medical Center), `S002` (Lipa Medical Center) |
 | Admin | `A001` |
@@ -150,6 +160,8 @@ The main window uses the same records for the public tabs and the role menus. Ro
 **Run the automated tests:** run `src/app/SystemTests.java`, or in the terminal use `java -cp bin app.SystemTests`. All checks should print `PASS`.
 
 **Run the password hashing tests:** use `java -cp bin app.PasswordHasherTests`.
+
+**Run the login integration tests:** use `java -cp bin app.LoginIntegrationTests`.
 
 **Reset the demo data:** delete the `data/` folder. The sample data is recreated on the next run.
 
@@ -173,7 +185,6 @@ Add these files to the `screenshots/` folder, then keep the lines below.
 - Distances are straight-line (great-circle) distances, not road routes or travel times.
 - The desktop app uses numbered dialogs for donor, staff, and admin workflows.
 - The built-in map is an offline overview. OpenStreetMap directions require a browser and internet access.
-- Login is by ID only, with no passwords.
 - CSV files are plain text and not encrypted. A real deployment would need a secured database.
 - Donor replies are entered by hospital staff to simulate a phone or app reply.
 - Alerts are shown inside the program. No real SMS or email is sent.

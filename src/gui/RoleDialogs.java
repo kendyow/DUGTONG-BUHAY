@@ -12,6 +12,7 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -19,6 +20,7 @@ import javax.swing.JTextField;
 import app.ConsoleMenu;
 import app.ConsoleMenu.Role;
 import app.InputReader;
+import auth.AccountAccess;
 import service.DataStore;
 import service.Registry;
 
@@ -31,10 +33,11 @@ final class RoleDialogs {
     private final StringWriter pending = new StringWriter();
     private String title;
 
-    RoleDialogs(Component owner, Registry registry, DataStore store) {
+    RoleDialogs(Component owner, Registry registry, DataStore store, AccountAccess accounts) {
         this.owner = owner;
         PrintWriter out = new PrintWriter(pending, true);
-        menu = new ConsoleMenu(registry, store, new InputReader(out, this::prompt), out);
+        menu = new ConsoleMenu(registry, store, accounts,
+                new InputReader(out, this::prompt, this::promptPassword), out);
     }
 
     void open(String title, Role role) {
@@ -51,12 +54,27 @@ final class RoleDialogs {
     }
 
     private String prompt(String prompt) {
+        JTextField answer = new JTextField(24);
+        showPrompt(prompt, answer);
+        return answer.getText();
+    }
+
+    private char[] promptPassword(String prompt) {
+        JPasswordField answer = new JPasswordField(24);
+        try {
+            showPrompt(prompt, answer);
+            return answer.getPassword();
+        } finally {
+            answer.setText("");
+        }
+    }
+
+    private void showPrompt(String prompt, JTextField answer) {
         JPanel content = new JPanel(new BorderLayout(0, 8));
         String text = takeOutput();
         if (!text.isBlank()) {
             content.add(outputView(text), BorderLayout.CENTER);
         }
-        JTextField answer = new JTextField(24);
         JPanel field = new JPanel(new BorderLayout(0, 4));
         field.add(new JLabel(prompt), BorderLayout.NORTH);
         field.add(answer, BorderLayout.CENTER);
@@ -80,7 +98,6 @@ final class RoleDialogs {
         if (!Integer.valueOf(JOptionPane.OK_OPTION).equals(pane.getValue())) {
             throw new EndSession();
         }
-        return answer.getText();
     }
 
     private String takeOutput() {

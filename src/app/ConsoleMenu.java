@@ -1,12 +1,16 @@
 package app;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.Arrays;
 import java.util.List;
 
+import auth.AccountAccess;
 import exception.DataStorageException;
 import exception.DugtongBuhayException;
+import exception.InvalidInputException;
 import exception.NoMatchFoundException;
 import exception.RecordNotFoundException;
 import model.Admin;
@@ -33,27 +37,49 @@ import service.Registry;
 public class ConsoleMenu {
     private final Registry registry;
     private final DataStore store;
+    private final AccountAccess accounts;
     private final InputReader in;
     private final PrintWriter out;
     private final HospitalFinder finder = new HospitalFinder();
     private final MatchingService matching = new MatchingService(new BalancedMatch());
 
-    public ConsoleMenu(Registry registry, DataStore store) {
+    public ConsoleMenu(Registry registry, DataStore store, AccountAccess accounts) {
         this.registry = registry;
         this.store = store;
+        this.accounts = accounts;
         this.out = new PrintWriter(System.out, true);
         this.in = new InputReader(out);
     }
 
-    public ConsoleMenu(Registry registry, DataStore store, InputReader in, PrintWriter out) {
+    public ConsoleMenu(Registry registry, DataStore store, AccountAccess accounts, InputReader in, PrintWriter out) {
         this.registry = registry;
         this.store = store;
+        this.accounts = accounts;
         this.in = in;
         this.out = out;
     }
 
     public enum Role {
-        STAFF, DONOR, ADMIN
+        STAFF("Hospital Staff"), DONOR("Donor"), ADMIN("Admin");
+
+        private final String accountRole;
+
+        Role(String accountRole) {
+            this.accountRole = accountRole;
+        }
+    }
+
+    private String signIn(Role role) throws InvalidInputException {
+        String id = in.readText("Account ID: ");
+        char[] password = in.readPassword("Password: ");
+        try {
+            return accounts.login(id, password)
+                    .filter(login -> role.accountRole.equals(login.role()))
+                    .orElseThrow(() -> new InvalidInputException("Sign-in failed. Check your ID, password, and role."))
+                    .userId();
+        } finally {
+            Arrays.fill(password, '\0');
+        }
     }
 
     public void runRole(Role role) {
@@ -149,7 +175,7 @@ public class ConsoleMenu {
     //  HOSPITAL STAFF
     // =====================================================================
     private void staffMenu() throws DugtongBuhayException {
-        String id = in.readText("Staff ID (try S001): ");
+        String id = signIn(Role.STAFF);
         HospitalStaff staff = registry.findStaff(id);
         Hospital hospital = registry.findHospitalByName(staff.getHospitalName());
         registry.getAuditLog().record(staff.getId(), "Logged in");
@@ -346,13 +372,12 @@ public class ConsoleMenu {
     private void donorMenu() throws DugtongBuhayException {
         out.println("1. Register as a new donor");
         out.println("2. I am already registered");
-        int choice = in.readInt("Choose: ", 1, 2);
-        Donor donor = (choice == 1) ? registerDonor()
-                                    : registry.findDonor(in.readText("Donor ID (try D001): "));
-
-        if (choice == 1) {
-            autosave();
+        out.println("0. Back");
+        int choice = in.readInt("Choose: ", 0, 2);
+        if (choice == 0) {
+            return;
         }
+        Donor donor = choice == 1 ? registerDonor() : registry.findDonor(signIn(Role.DONOR));
 
         boolean back = false;
         while (!back) {
@@ -403,7 +428,20 @@ public class ConsoleMenu {
         Location place = chooseLocation("Where do you live?");
 
         Donor donor = new Donor(registry.nextDonorId(), name, phone, type, place);
-        registry.addDonor(donor);   // may throw DuplicateRecordException
+        char[] password = in.readNewPassword();
+        try {
+            registry.addDonor(donor);
+            // Persist the profile first so a saved credential always has a profile to load.
+            store.save(registry);
+            try {
+                accounts.enroll(donor.getId(), password);
+            } catch (IOException e) {
+                throw new DataStorageException("Profile " + donor.getId()
+                        + " was saved, but its password could not be saved. Ask the local operator to set it up.");
+            }
+        } finally {
+            Arrays.fill(password, '\0');
+        }
         registry.getAuditLog().record(donor.getId(), "Registered");
         out.println("Registered! Your Donor ID is " + donor.getId() + ".");
         out.println("You will NOT receive alerts until you give consent (option 2).");
@@ -460,7 +498,7 @@ public class ConsoleMenu {
     //  ADMIN
     // =====================================================================
     private void adminMenu() throws DugtongBuhayException {
-        String id = in.readText("Admin ID (try A001): ");
+        String id = signIn(Role.ADMIN);
         Admin admin = registry.findAdmin(id);
         out.println("Welcome, " + admin.getName());
 
