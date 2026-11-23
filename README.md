@@ -127,13 +127,13 @@ DugtongBuhay/
 
 Windows:
 ```
-javac -encoding UTF-8 -d bin src\exception\*.java src\model\*.java src\service\*.java src\gui\*.java src\app\*.java
+javac -encoding UTF-8 -d bin src\exception\*.java src\model\*.java src\service\*.java src\gui\*.java src\auth\*.java src\app\*.java
 java -cp bin app.GuiMain
 ```
 
 Mac / Linux:
 ```
-javac -encoding UTF-8 -d bin src/exception/*.java src/model/*.java src/service/*.java src/gui/*.java src/app/*.java
+javac -encoding UTF-8 -d bin src/exception/*.java src/model/*.java src/service/*.java src/gui/*.java src/auth/*.java src/app/*.java
 java -cp bin app.GuiMain
 ```
 
@@ -148,6 +148,8 @@ The main window uses the same records for the public tabs and the role menus. Ro
 | Donors | `D001` to `D008` |
 
 **Run the automated tests:** run `src/app/SystemTests.java`, or in the terminal use `java -cp bin app.SystemTests`. All checks should print `PASS`.
+
+**Run the password hashing tests:** use `java -cp bin app.PasswordHasherTests`.
 
 **Reset the demo data:** delete the `data/` folder. The sample data is recreated on the next run.
 
