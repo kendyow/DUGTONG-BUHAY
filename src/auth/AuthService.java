@@ -51,7 +51,7 @@ public final class AuthService {
         return Optional.of(account.login());
     }
 
-    private static String normalizeId(String id) {
+    static String normalizeId(String id) {
         return id.strip().toUpperCase(Locale.ROOT);
     }
 }
