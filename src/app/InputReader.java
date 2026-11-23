@@ -1,6 +1,8 @@
 package app;
 
+import java.io.Console;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.function.Function;
 
@@ -15,6 +17,7 @@ public class InputReader {
     }
 
     private final Function<String, String> read;
+    private final Function<String, char[]> readSecret;
     private final PrintWriter out;
 
     public InputReader() {
@@ -22,18 +25,58 @@ public class InputReader {
     }
 
     InputReader(PrintWriter out) {
-        Scanner scanner = new Scanner(System.in);
         this.out = out;
-        this.read = prompt -> {
-            out.print(prompt);
-            out.flush();
-            return scanner.nextLine();
-        };
+        Console console = System.console();
+        if (console != null) {
+            read = prompt -> console.readLine("%s", prompt);
+            readSecret = prompt -> console.readPassword("%s", prompt);
+        } else {
+            Scanner scanner = new Scanner(System.in);
+            read = prompt -> {
+                out.print(prompt);
+                out.flush();
+                return scanner.nextLine();
+            };
+            readSecret = prompt -> null;
+        }
     }
 
-    public InputReader(PrintWriter out, Function<String, String> read) {
+    public InputReader(PrintWriter out, Function<String, String> read, Function<String, char[]> readSecret) {
         this.out = out;
         this.read = read;
+        this.readSecret = readSecret;
+    }
+
+    public char[] readPassword(String prompt) throws InvalidInputException {
+        char[] password = readSecret.apply(prompt);
+        if (password == null) {
+            throw new InvalidInputException("Password entry unavailable. Use an interactive terminal or the desktop app.");
+        }
+        return password;
+    }
+
+    public char[] readNewPassword() throws InvalidInputException {
+        char[] password = readPassword("New password (at least 15 characters): ");
+        boolean accepted = false;
+        try {
+            if (password.length < 15) {
+                throw new InvalidInputException("Use at least 15 characters for the password.");
+            }
+            char[] confirmation = readPassword("Confirm password: ");
+            try {
+                if (!Arrays.equals(password, confirmation)) {
+                    throw new InvalidInputException("The passwords did not match.");
+                }
+                accepted = true;
+                return password;
+            } finally {
+                Arrays.fill(confirmation, '\0');
+            }
+        } finally {
+            if (!accepted) {
+                Arrays.fill(password, '\0');
+            }
+        }
     }
 
     // ---------- parsing rules (static, so they are easy to test) ----------

@@ -59,6 +59,14 @@ public final class AccountStore {
 
     /** Binds stored credentials to current trusted user profiles. A missing file means no accounts. */
     public Map<User, String> load(Iterable<? extends User> users) throws IOException {
+        Map<String, User> byId = new HashMap<>();
+        for (User user : users) {
+            String id = user.getId();
+            if (!validId(id) || byId.putIfAbsent(AuthService.normalizeId(id), user) != null) {
+                throw new IOException("Invalid or duplicate user ID in account profiles.");
+            }
+        }
+
         List<String> rows;
         try {
             rows = Files.readAllLines(file, StandardCharsets.UTF_8);
@@ -67,14 +75,6 @@ public final class AccountStore {
         }
         if (rows.isEmpty() || !HEADER.equals(rows.get(0))) {
             throw new IOException("Invalid accounts.csv header.");
-        }
-
-        Map<String, User> byId = new HashMap<>();
-        for (User user : users) {
-            String id = user.getId();
-            if (!validId(id) || byId.putIfAbsent(AuthService.normalizeId(id), user) != null) {
-                throw new IOException("Invalid or duplicate user ID in account profiles.");
-            }
         }
 
         Map<User, String> records = new HashMap<>();
