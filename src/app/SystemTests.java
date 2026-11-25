@@ -176,6 +176,27 @@ public class SystemTests {
         Donor donor = new Donor("D1", "Ann Test", "09171234567", BloodType.A_POS, hosp);
         check("RQ-07 staff can post requests, donors cannot",
                 nurse.canPostRequests() && !donor.canPostRequests());
+        expectError("RQ-08 blank hospital name is rejected", IllegalArgumentException.class,
+        () -> new BloodRequest("PT-3", BloodType.A_POS, 1, UrgencyLevel.URGENT,
+                " ", hosp, "S1"));
+
+        expectError("RQ-09 missing hospital location is rejected", IllegalArgumentException.class,
+        () -> new BloodRequest("PT-3", BloodType.A_POS, 1, UrgencyLevel.URGENT,
+                "Test Hospital", null, "S1"));
+
+        expectError("RQ-10 blank staff ID is rejected", IllegalArgumentException.class,
+        () -> new BloodRequest("PT-3", BloodType.A_POS, 1, UrgencyLevel.URGENT,
+                "Test Hospital", hosp, " "));
+
+        BloodRequest cancelled = nurse.postRequest(
+        "PT-4", BloodType.O_NEG, 1, UrgencyLevel.ROUTINE);
+        cancelled.cancel();
+
+        check("RQ-11 request becomes CANCELLED",
+        cancelled.getStatus() == BloodRequest.Status.CANCELLED);
+
+        expectError("RQ-12 cancelled request cannot be fulfilled", IllegalStateException.class,
+        () -> cancelled.fulfill());
     }
 
     // =====================================================================
