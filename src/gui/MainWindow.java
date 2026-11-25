@@ -14,6 +14,7 @@ import javax.swing.border.EmptyBorder;
 
 import app.ConsoleMenu.Role;
 import auth.AccountAccess;
+import gui.dashboard.DashboardPanel;
 import service.DataStore;
 import service.Registry;
 
@@ -28,6 +29,10 @@ public class MainWindow extends JFrame {
         StockPanel stockPanel = new StockPanel(registry);
 
         JTabbedPane tabs = new JTabbedPane();
+        DashboardPanel dashboard = new DashboardPanel(
+                () -> tabs.setSelectedComponent(finderPanel),
+                () -> tabs.setSelectedComponent(stockPanel));
+        tabs.addTab("Home", dashboard);
         tabs.addTab("Find Blood Nearby", finderPanel);
         tabs.addTab("Hospital Stock Board", stockPanel);
         tabs.addChangeListener(e -> {
