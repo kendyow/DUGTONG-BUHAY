@@ -41,7 +41,7 @@ public class Donor extends User implements Notifiable {
 
     public BloodType getBloodType() { return bloodType; }
     public Location getLocation() { return location; }
-    public boolean hasConsented() { return consentToBeContacted; }
+    public boolean hasConsented() { return isAccountActive() && consentToBeContacted; }
     public boolean isHealthyToDonate() { return healthyToDonate; }
     public double getReliabilityScore() { return reliabilityScore; }
 
@@ -102,7 +102,7 @@ public class Donor extends User implements Notifiable {
         /** Second line of defense for privacy: no consent, no alerts. */
     @Override
     public void receiveAlert(String message) {
-        if (!consentToBeContacted) {
+        if (!hasConsented()) {
             throw new IllegalStateException("Donor has not consented to alerts.");
         }
         inbox.add(message);

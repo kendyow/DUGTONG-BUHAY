@@ -194,8 +194,9 @@ public class ConsoleMenu {
             out.println("8. My inbox");
             out.println("9. Request history");
             out.println("10. Change my password");
+            out.println("11. Deactivate my account");
             out.println("0. Back");
-            int choice = in.readInt("Choose: ", 0, 10);
+            int choice = in.readInt("Choose: ", 0, 11);
             try {
                 switch (choice) {
                     case 1: showStockBoard(hospital); break;
@@ -213,6 +214,7 @@ public class ConsoleMenu {
                         in.showRequestHistory(history);
                         break;
                     case 10: changePassword(staff.getId()); break;
+                    case 11: back = deactivateAccount(staff.getId()); break;
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
@@ -416,8 +418,9 @@ public class ConsoleMenu {
             out.println("6. Update my health status");
             out.println("7. Edit my name and mobile number");
             out.println("8. Change my password");
+            out.println("9. Deactivate my account");
             out.println("0. Back");
-            int pick = in.readInt("Choose: ", 0, 8);
+            int pick = in.readInt("Choose: ", 0, 9);
             try {
                 switch (pick) {
                     case 1: showProfile(donor); break;
@@ -443,6 +446,9 @@ public class ConsoleMenu {
                         break;
                     case 8:
                         changePassword(donor.getId());
+                        break;
+                    case 9:
+                        back = deactivateAccount(donor.getId());
                         break;
                     default: back = true;
                 }
@@ -560,8 +566,10 @@ public class ConsoleMenu {
             out.println("3. View audit log");
             out.println("4. System summary");
             out.println("5. Change my password");
+            out.println("6. Deactivate my account");
+            out.println("7. Deactivate or restore an account");
             out.println("0. Back");
-            int choice = in.readInt("Choose: ", 0, 5);
+            int choice = in.readInt("Choose: ", 0, 7);
             try {
                 switch (choice) {
                     case 1: listDonors(); break;
@@ -569,6 +577,8 @@ public class ConsoleMenu {
                     case 3: showAuditLog(); break;
                     case 4: showSummary(); break;
                     case 5: changePassword(admin.getId()); break;
+                    case 6: back = deactivateAccount(admin.getId()); break;
+                    case 7: manageAccountStatus(admin); break;
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
@@ -576,6 +586,47 @@ public class ConsoleMenu {
             } finally {
                 autosave();
             }
+        }
+    }
+
+    private void manageAccountStatus(Admin admin) throws DugtongBuhayException {
+        String target = in.readText("Account ID: ");
+        boolean active = in.readYesNo("Restore this account? Answer no to deactivate it (y/n): ");
+        if (!in.readYesNo("Confirm account status change? (y/n): ")) {
+            return;
+        }
+        char[] password = in.readPassword("Your administrator password: ");
+        try {
+            if (!accounts.setAccountActive(admin.getId(), password, target, active)) {
+                out.println("Administrator verification failed.");
+                return;
+            }
+            registry.getAuditLog().record(admin.getId(), (active ? "Restored " : "Deactivated ") + target);
+            out.println(active ? "Account restored." : "Account deactivated.");
+        } catch (IOException e) {
+            throw new DataStorageException("Could not change account status: " + e.getMessage());
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+    }
+
+    private boolean deactivateAccount(String userId) throws DugtongBuhayException {
+        if (!in.readYesNo("Deactivate your account and sign out? (y/n): ")) {
+            return false;
+        }
+        char[] password = in.readPassword("Current password: ");
+        try {
+            if (!accounts.deactivate(userId, password)) {
+                out.println("Current password is incorrect.");
+                return false;
+            }
+            registry.getAuditLog().record(userId, "Deactivated account");
+            out.println("Account deactivated. You are signed out.");
+            return true;
+        } catch (IOException e) {
+            throw new DataStorageException("Could not deactivate account: " + e.getMessage());
+        } finally {
+            Arrays.fill(password, '\0');
         }
     }
 
