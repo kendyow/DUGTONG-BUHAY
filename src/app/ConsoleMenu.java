@@ -192,8 +192,9 @@ public class ConsoleMenu {
             out.println("6. Mark a request fulfilled");
             out.println("7. Shortage forecast");
             out.println("8. My inbox");
+            out.println("9. Request history");
             out.println("0. Back");
-            int choice = in.readInt("Choose: ", 0, 8);
+            int choice = in.readInt("Choose: ", 0, 9);
             try {
                 switch (choice) {
                     case 1: showStockBoard(hospital); break;
@@ -204,6 +205,12 @@ public class ConsoleMenu {
                     case 6: fulfillRequest(staff, hospital); break;
                     case 7: showForecast(hospital); break;
                     case 8: showInbox(staff); break;
+                    case 9:
+                        List<BloodRequest> history = registry.getRequests().stream()
+                                .filter(request -> hospital.getName().equalsIgnoreCase(request.getHospitalName()))
+                                .toList();
+                        in.showRequestHistory(history);
+                        break;
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {

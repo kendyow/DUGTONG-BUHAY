@@ -46,6 +46,17 @@ final class RoleDialogs {
         PrintWriter out = new PrintWriter(pending, true);
         InputReader input = new InputReader(out, this::prompt, this::promptPassword);
         input.setRequestForm(staff -> EmergencyRequestForm.show(owner, staff));
+        input.setRequestHistory(requests -> {
+            takeOutput();
+            RequestHistoryPanel history = new RequestHistoryPanel();
+            history.setRequests(requests);
+            JDialog dialog = new JDialog(JOptionPane.getFrameForComponent(owner), "Request history", true);
+            dialog.setContentPane(history);
+            dialog.setSize(850, 420);
+            dialog.setLocationRelativeTo(owner);
+            dialog.setVisible(true);
+            dialog.dispose();
+        });
         menu = new ConsoleMenu(registry, store, accounts, input, out);
     }
 

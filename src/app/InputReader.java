@@ -3,11 +3,14 @@ package app;
 import java.io.Console;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import exception.InvalidInputException;
 import model.BloodType;
+import model.BloodRequest;
 import model.HospitalStaff;
 import model.UrgencyLevel;
 
@@ -22,6 +25,21 @@ public class InputReader {
     private final Function<String, char[]> readSecret;
     private final PrintWriter out;
     private Function<HospitalStaff, RequestDetails> requestForm;
+    private Consumer<List<BloodRequest>> requestHistory;
+
+    public void setRequestHistory(Consumer<List<BloodRequest>> requestHistory) {
+        this.requestHistory = requestHistory;
+    }
+
+    public void showRequestHistory(List<BloodRequest> requests) {
+        if (requestHistory != null) {
+            requestHistory.accept(requests);
+        } else if (requests.isEmpty()) {
+            out.println("No requests for your hospital.");
+        } else {
+            requests.forEach(out::println);
+        }
+    }
 
     public record RequestDetails(String patientCode, BloodType bloodType, int units, UrgencyLevel urgency) {}
 
