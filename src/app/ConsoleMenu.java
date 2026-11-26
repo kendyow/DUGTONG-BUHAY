@@ -412,8 +412,9 @@ public class ConsoleMenu {
             out.println("4. Record a donation");
             out.println("5. My alerts");
             out.println("6. Update my health status");
+            out.println("7. Edit my name and mobile number");
             out.println("0. Back");
-            int pick = in.readInt("Choose: ", 0, 6);
+            int pick = in.readInt("Choose: ", 0, 7);
             try {
                 switch (pick) {
                     case 1: showProfile(donor); break;
@@ -434,14 +435,33 @@ public class ConsoleMenu {
                         registry.getAuditLog().record(donor.getId(), "Updated health status");
                         out.println("Status updated.");
                         break;
+                    case 7:
+                        editDonorProfile(donor);
+                        break;
                     default: back = true;
                 }
-            } catch (IllegalArgumentException | IllegalStateException e) {
+            } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
                 out.println("  ! " + e.getMessage());
             } finally {
                 autosave();
             }
         }
+    }
+
+    private void editDonorProfile(Donor donor) throws DugtongBuhayException {
+        String name = in.readText("Full name: ");
+        String phone = in.readPhone("Mobile number (09XXXXXXXXX): ");
+        String previousName = donor.getName();
+        String previousPhone = donor.getContactNumber();
+        registry.updateDonorProfile(donor, name, phone);
+        try {
+            store.save(registry);
+        } catch (DataStorageException e) {
+            registry.updateDonorProfile(donor, previousName, previousPhone);
+            throw e;
+        }
+        registry.getAuditLog().record(donor.getId(), "Updated profile");
+        out.println("Profile updated.");
     }
 
     private Donor registerDonor() throws DugtongBuhayException {
