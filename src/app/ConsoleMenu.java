@@ -193,8 +193,9 @@ public class ConsoleMenu {
             out.println("7. Shortage forecast");
             out.println("8. My inbox");
             out.println("9. Request history");
+            out.println("10. Change my password");
             out.println("0. Back");
-            int choice = in.readInt("Choose: ", 0, 9);
+            int choice = in.readInt("Choose: ", 0, 10);
             try {
                 switch (choice) {
                     case 1: showStockBoard(hospital); break;
@@ -211,6 +212,7 @@ public class ConsoleMenu {
                                 .toList();
                         in.showRequestHistory(history);
                         break;
+                    case 10: changePassword(staff.getId()); break;
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
@@ -413,8 +415,9 @@ public class ConsoleMenu {
             out.println("5. My alerts");
             out.println("6. Update my health status");
             out.println("7. Edit my name and mobile number");
+            out.println("8. Change my password");
             out.println("0. Back");
-            int pick = in.readInt("Choose: ", 0, 7);
+            int pick = in.readInt("Choose: ", 0, 8);
             try {
                 switch (pick) {
                     case 1: showProfile(donor); break;
@@ -437,6 +440,9 @@ public class ConsoleMenu {
                         break;
                     case 7:
                         editDonorProfile(donor);
+                        break;
+                    case 8:
+                        changePassword(donor.getId());
                         break;
                     default: back = true;
                 }
@@ -553,14 +559,16 @@ public class ConsoleMenu {
             out.println("2. Withdraw a donor's consent (privacy request)");
             out.println("3. View audit log");
             out.println("4. System summary");
+            out.println("5. Change my password");
             out.println("0. Back");
-            int choice = in.readInt("Choose: ", 0, 4);
+            int choice = in.readInt("Choose: ", 0, 5);
             try {
                 switch (choice) {
                     case 1: listDonors(); break;
                     case 2: withdrawConsentFor(admin); break;
                     case 3: showAuditLog(); break;
                     case 4: showSummary(); break;
+                    case 5: changePassword(admin.getId()); break;
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
@@ -568,6 +576,27 @@ public class ConsoleMenu {
             } finally {
                 autosave();
             }
+        }
+    }
+
+    private void changePassword(String userId) throws DugtongBuhayException {
+        char[] current = in.readPassword("Current password: ");
+        try {
+            char[] replacement = in.readNewPassword();
+            try {
+                if (!accounts.changePassword(userId, current, replacement)) {
+                    out.println("Current password is incorrect.");
+                    return;
+                }
+                registry.getAuditLog().record(userId, "Changed password");
+                out.println("Password changed.");
+            } catch (IOException e) {
+                throw new DataStorageException("Could not save the new password: " + e.getMessage());
+            } finally {
+                Arrays.fill(replacement, '\0');
+            }
+        } finally {
+            Arrays.fill(current, '\0');
         }
     }
 
