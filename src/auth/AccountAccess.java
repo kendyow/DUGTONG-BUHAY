@@ -26,6 +26,28 @@ public final class AccountAccess {
         return auth.login(id, password);
     }
 
+    /** Verifies the current password and atomically stores a replacement. */
+    public boolean changePassword(String id, char[] currentPassword, char[] newPassword) throws IOException {
+        List<User> profiles = profiles();
+        Map<User, String> records = new HashMap<>(store.load(profiles));
+        AuthService current = new AuthService(records);
+        Optional<AuthService.Login> login = current.login(id, currentPassword);
+        if (login.isEmpty()) {
+            return false;
+        }
+        if (newPassword == null || newPassword.length < 15) {
+            throw new IllegalArgumentException("Use at least 15 characters for the password.");
+        }
+        String accountId = login.get().userId();
+        User user = profiles.stream().filter(profile -> profile.getId().equals(accountId))
+                .findFirst().orElseThrow();
+        records.put(user, PasswordHasher.hash(newPassword));
+        AuthService updated = new AuthService(records);
+        store.save(records);
+        auth = updated;
+        return true;
+    }
+
     /** Sets a first password for an existing profile. Existing credentials cannot be replaced here. */
     public void enroll(String id, char[] password) throws IOException {
         if (password == null || password.length < 15) {
