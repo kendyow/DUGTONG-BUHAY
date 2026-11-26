@@ -8,6 +8,8 @@ import java.util.function.Function;
 
 import exception.InvalidInputException;
 import model.BloodType;
+import model.HospitalStaff;
+import model.UrgencyLevel;
 
 public class InputReader {
 
@@ -19,6 +21,21 @@ public class InputReader {
     private final Function<String, String> read;
     private final Function<String, char[]> readSecret;
     private final PrintWriter out;
+    private Function<HospitalStaff, RequestDetails> requestForm;
+
+    public record RequestDetails(String patientCode, BloodType bloodType, int units, UrgencyLevel urgency) {}
+
+    public void setRequestForm(Function<HospitalStaff, RequestDetails> requestForm) {
+        this.requestForm = requestForm;
+    }
+
+    public boolean hasRequestForm() {
+        return requestForm != null;
+    }
+
+    public RequestDetails showRequestForm(HospitalStaff staff) {
+        return requestForm.apply(staff);
+    }
 
     public InputReader() {
         this(new PrintWriter(System.out, true));
