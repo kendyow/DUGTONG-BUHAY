@@ -42,6 +42,26 @@ public class Registry {
         donors.add(donor);
     }
 
+    /** Updates an existing donor's profile after validating both fields and phone uniqueness. */
+    public void updateDonorProfile(Donor donor, String name, String phone) throws DuplicateRecordException {
+        if (!donors.contains(donor)) {
+            throw new IllegalArgumentException("Donor does not belong to this registry.");
+        }
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be empty.");
+        }
+        if (phone == null || !phone.matches("09\\d{9}")) {
+            throw new IllegalArgumentException("Contact number must be 11 digits starting with 09.");
+        }
+        for (Donor existing : donors) {
+            if (existing != donor && existing.getContactNumber().equals(phone)) {
+                throw new DuplicateRecordException("A donor with this mobile number is already registered.");
+            }
+        }
+        donor.setName(name);
+        donor.setContactNumber(phone);
+    }
+
     public void addHospital(Hospital hospital) throws DuplicateRecordException {
         for (Hospital h : hospitals) {
             if (h.getId().equalsIgnoreCase(hospital.getId())) {
