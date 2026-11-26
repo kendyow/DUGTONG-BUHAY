@@ -23,6 +23,7 @@ import app.ConsoleMenu.Role;
 import app.InputReader;
 import auth.AccountAccess;
 import gui.forms.DonorLoginPanel;
+import gui.forms.EmergencyRequestForm;
 import service.DataStore;
 import service.Registry;
 
@@ -43,8 +44,9 @@ final class RoleDialogs {
         this.owner = owner;
         this.accounts = accounts;
         PrintWriter out = new PrintWriter(pending, true);
-        menu = new ConsoleMenu(registry, store, accounts,
-                new InputReader(out, this::prompt, this::promptPassword), out);
+        InputReader input = new InputReader(out, this::prompt, this::promptPassword);
+        input.setRequestForm(staff -> EmergencyRequestForm.show(owner, staff));
+        menu = new ConsoleMenu(registry, store, accounts, input, out);
     }
 
     void open(String title, Role role) {

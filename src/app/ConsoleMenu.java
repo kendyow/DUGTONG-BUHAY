@@ -237,17 +237,34 @@ public class ConsoleMenu {
                 + " (" + hospital.getStatus(type) + ")");
     }
 
-    private void postRequestAndMatch(HospitalStaff staff) throws NoMatchFoundException {
+    private void postRequestAndMatch(HospitalStaff staff) throws DugtongBuhayException {
         out.println("\n-- New blood request (use a patient CODE, never a real name) --");
-        String code = in.readText("Patient code (e.g. PT-0042): ");
-        BloodType type = in.readBloodType("Blood type needed: ");
-        int units = in.readInt("Units needed (1-10): ", 1, 10);
-        UrgencyLevel urgency = chooseUrgency();
+        String code;
+        BloodType type;
+        int units;
+        UrgencyLevel urgency;
+        if (in.hasRequestForm()) {
+            InputReader.RequestDetails details = in.showRequestForm(staff);
+            if (details == null) {
+                out.println("Request cancelled.");
+                return;
+            }
+            code = details.patientCode();
+            type = details.bloodType();
+            units = details.units();
+            urgency = details.urgency();
+        } else {
+            code = in.readText("Patient code (e.g. PT-0042): ");
+            type = in.readBloodType("Blood type needed: ");
+            units = in.readInt("Units needed (1-10): ", 1, 10);
+            urgency = chooseUrgency();
+        }
 
         BloodRequest request = staff.postRequest(code, type, units, urgency);
         registry.addRequest(request);
         registry.getAuditLog().record(staff.getId(), "Posted " + request.getRequestId()
                 + " (" + type + ", " + urgency + ")");
+        store.save(registry);
         out.println("Posted: " + request);
 
         chooseStrategy();
