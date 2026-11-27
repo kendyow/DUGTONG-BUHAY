@@ -568,8 +568,9 @@ public class ConsoleMenu {
             out.println("5. Change my password");
             out.println("6. Deactivate my account");
             out.println("7. Deactivate or restore an account");
+            out.println("8. Create a hospital staff account");
             out.println("0. Back");
-            int choice = in.readInt("Choose: ", 0, 7);
+            int choice = in.readInt("Choose: ", 0, 8);
             try {
                 switch (choice) {
                     case 1: listDonors(); break;
@@ -579,6 +580,7 @@ public class ConsoleMenu {
                     case 5: changePassword(admin.getId()); break;
                     case 6: back = deactivateAccount(admin.getId()); break;
                     case 7: manageAccountStatus(admin); break;
+                    case 8: createStaffAccount(admin); break;
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
@@ -586,6 +588,44 @@ public class ConsoleMenu {
             } finally {
                 autosave();
             }
+        }
+    }
+
+    private void createStaffAccount(Admin admin) throws DugtongBuhayException {
+        String id = in.readText("New staff account ID: ");
+        String name = in.readText("Staff full name: ");
+        String phone = in.readPhone("Mobile number (09XXXXXXXXX): ");
+        String hospitalName = in.readText("Existing hospital name: ");
+        Hospital hospital = registry.findHospitalByName(hospitalName);
+        if (registry.getDonors().stream().anyMatch(user -> user.getId().equalsIgnoreCase(id))
+                || registry.getStaff().stream().anyMatch(user -> user.getId().equalsIgnoreCase(id))
+                || registry.getAdmins().stream().anyMatch(user -> user.getId().equalsIgnoreCase(id))) {
+            throw new IllegalArgumentException("That account ID is already in use.");
+        }
+        char[] adminPassword = in.readPassword("Your administrator password: ");
+        try {
+            if (accounts.login(admin.getId(), adminPassword).filter(login -> "Admin".equals(login.role())).isEmpty()) {
+                out.println("Administrator verification failed.");
+                return;
+            }
+        } finally {
+            Arrays.fill(adminPassword, '\0');
+        }
+        char[] staffPassword = in.readNewPassword();
+        try {
+            HospitalStaff staff = new HospitalStaff(id, name, phone, hospital.getName(), hospital.getLocation());
+            registry.addStaff(staff);
+            store.save(registry);
+            try {
+                accounts.enroll(staff.getId(), staffPassword);
+            } catch (IOException e) {
+                throw new DataStorageException("Staff profile " + staff.getId()
+                        + " was saved, but its password could not be saved. Use account setup to complete it.");
+            }
+            registry.getAuditLog().record(admin.getId(), "Created staff account " + staff.getId());
+            out.println("Staff account created: " + staff.getId() + ".");
+        } finally {
+            Arrays.fill(staffPassword, '\0');
         }
     }
 
