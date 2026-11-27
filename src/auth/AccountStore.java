@@ -19,6 +19,13 @@ import service.CsvUtil;
 /** Stores credentials separately from user profiles. Use one writer for each data directory. */
 public final class AccountStore {
     private static final String HEADER = "user_id,password_record";
+    static final String DEACTIVATED = "deactivated$";
+
+    private static boolean validRecord(String record) {
+        return record != null && (PasswordHasher.isEncodedRecord(record)
+                || (record.startsWith(DEACTIVATED)
+                    && PasswordHasher.isEncodedRecord(record.substring(DEACTIVATED.length()))));
+    }
     private final Path directory;
     private final Path file;
 
@@ -38,7 +45,7 @@ public final class AccountStore {
         for (var entry : passwordRecords.entrySet()) {
             String id = entry.getKey().getId();
             String record = entry.getValue();
-            if (!validId(id) || !PasswordHasher.isEncodedRecord(record)) {
+            if (!validId(id) || !validRecord(record)) {
                 throw new IllegalArgumentException("Invalid account ID or password record.");
             }
             if (!seen.add(AuthService.normalizeId(id))) {
@@ -82,7 +89,7 @@ public final class AccountStore {
             String row = rows.get(index);
             List<String> fields = CsvUtil.parseLine(row);
             if (fields.size() != 2 || !validId(fields.get(0))
-                    || !PasswordHasher.isEncodedRecord(fields.get(1))
+                    || !validRecord(fields.get(1))
                     || !row.equals(CsvUtil.join(fields.get(0), fields.get(1)))) {
                 throw new IOException("Invalid account record on line " + (index + 1) + ".");
             }

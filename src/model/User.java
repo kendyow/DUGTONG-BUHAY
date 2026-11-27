@@ -4,6 +4,7 @@ public abstract class User {
     private final String id;
     private String name;
     private String contactNumber;
+    private boolean accountActive = true;
 
     protected User(String id, String name, String contactNumber) {
         this.id = id;
@@ -14,6 +15,9 @@ public abstract class User {
     public String getId() { return id; }
     public String getName() { return name; }
     public String getContactNumber() { return contactNumber; }
+    public boolean isAccountActive() { return accountActive; }
+    public void deactivateAccount() { accountActive = false; }
+    public void activateAccount() { accountActive = true; }
 
     public void setName(String name) {
         if (name == null || name.isBlank()) {
