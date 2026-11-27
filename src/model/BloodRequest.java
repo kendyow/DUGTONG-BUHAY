@@ -38,6 +38,15 @@ public class BloodRequest {
         if (urgency == null) {
             throw new IllegalArgumentException("Urgency level is required.");
         }
+        if (hospitalName == null || hospitalName.isBlank()) {
+            throw new IllegalArgumentException("Hospital name is required.");
+        }
+        if (hospitalLocation == null) {
+            throw new IllegalArgumentException("Hospital location is required.");
+        }
+        if (requestedByStaffId == null || requestedByStaffId.isBlank()) {
+    throw new IllegalArgumentException("Requesting staff ID is required.");
+}
         counter++;
         this.requestId = String.format("REQ-%03d", counter);
         this.patientCode = patientCode.trim();

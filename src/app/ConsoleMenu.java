@@ -1,12 +1,16 @@
 package app;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.Arrays;
 import java.util.List;
 
+import auth.AccountAccess;
 import exception.DataStorageException;
 import exception.DugtongBuhayException;
+import exception.InvalidInputException;
 import exception.NoMatchFoundException;
 import exception.RecordNotFoundException;
 import model.Admin;
@@ -33,27 +37,49 @@ import service.Registry;
 public class ConsoleMenu {
     private final Registry registry;
     private final DataStore store;
+    private final AccountAccess accounts;
     private final InputReader in;
     private final PrintWriter out;
     private final HospitalFinder finder = new HospitalFinder();
     private final MatchingService matching = new MatchingService(new BalancedMatch());
 
-    public ConsoleMenu(Registry registry, DataStore store) {
+    public ConsoleMenu(Registry registry, DataStore store, AccountAccess accounts) {
         this.registry = registry;
         this.store = store;
+        this.accounts = accounts;
         this.out = new PrintWriter(System.out, true);
         this.in = new InputReader(out);
     }
 
-    public ConsoleMenu(Registry registry, DataStore store, InputReader in, PrintWriter out) {
+    public ConsoleMenu(Registry registry, DataStore store, AccountAccess accounts, InputReader in, PrintWriter out) {
         this.registry = registry;
         this.store = store;
+        this.accounts = accounts;
         this.in = in;
         this.out = out;
     }
 
     public enum Role {
-        STAFF, DONOR, ADMIN
+        STAFF("Hospital Staff"), DONOR("Donor"), ADMIN("Admin");
+
+        private final String accountRole;
+
+        Role(String accountRole) {
+            this.accountRole = accountRole;
+        }
+    }
+
+    private String signIn(Role role) throws InvalidInputException {
+        String id = in.readText("Account ID: ");
+        char[] password = in.readPassword("Password: ");
+        try {
+            return accounts.login(id, password)
+                    .filter(login -> role.accountRole.equals(login.role()))
+                    .orElseThrow(() -> new InvalidInputException("Sign-in failed. Check your ID, password, and role."))
+                    .userId();
+        } finally {
+            Arrays.fill(password, '\0');
+        }
     }
 
     public void runRole(Role role) {
@@ -149,7 +175,7 @@ public class ConsoleMenu {
     //  HOSPITAL STAFF
     // =====================================================================
     private void staffMenu() throws DugtongBuhayException {
-        String id = in.readText("Staff ID (try S001): ");
+        String id = signIn(Role.STAFF);
         HospitalStaff staff = registry.findStaff(id);
         Hospital hospital = registry.findHospitalByName(staff.getHospitalName());
         registry.getAuditLog().record(staff.getId(), "Logged in");
@@ -166,8 +192,11 @@ public class ConsoleMenu {
             out.println("6. Mark a request fulfilled");
             out.println("7. Shortage forecast");
             out.println("8. My inbox");
+            out.println("9. Request history");
+            out.println("10. Change my password");
+            out.println("11. Deactivate my account");
             out.println("0. Back");
-            int choice = in.readInt("Choose: ", 0, 8);
+            int choice = in.readInt("Choose: ", 0, 11);
             try {
                 switch (choice) {
                     case 1: showStockBoard(hospital); break;
@@ -178,6 +207,14 @@ public class ConsoleMenu {
                     case 6: fulfillRequest(staff, hospital); break;
                     case 7: showForecast(hospital); break;
                     case 8: showInbox(staff); break;
+                    case 9:
+                        List<BloodRequest> history = registry.getRequests().stream()
+                                .filter(request -> hospital.getName().equalsIgnoreCase(request.getHospitalName()))
+                                .toList();
+                        in.showRequestHistory(history);
+                        break;
+                    case 10: changePassword(staff.getId()); break;
+                    case 11: back = deactivateAccount(staff.getId()); break;
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
@@ -211,17 +248,34 @@ public class ConsoleMenu {
                 + " (" + hospital.getStatus(type) + ")");
     }
 
-    private void postRequestAndMatch(HospitalStaff staff) throws NoMatchFoundException {
+    private void postRequestAndMatch(HospitalStaff staff) throws DugtongBuhayException {
         out.println("\n-- New blood request (use a patient CODE, never a real name) --");
-        String code = in.readText("Patient code (e.g. PT-0042): ");
-        BloodType type = in.readBloodType("Blood type needed: ");
-        int units = in.readInt("Units needed (1-10): ", 1, 10);
-        UrgencyLevel urgency = chooseUrgency();
+        String code;
+        BloodType type;
+        int units;
+        UrgencyLevel urgency;
+        if (in.hasRequestForm()) {
+            InputReader.RequestDetails details = in.showRequestForm(staff);
+            if (details == null) {
+                out.println("Request cancelled.");
+                return;
+            }
+            code = details.patientCode();
+            type = details.bloodType();
+            units = details.units();
+            urgency = details.urgency();
+        } else {
+            code = in.readText("Patient code (e.g. PT-0042): ");
+            type = in.readBloodType("Blood type needed: ");
+            units = in.readInt("Units needed (1-10): ", 1, 10);
+            urgency = chooseUrgency();
+        }
 
         BloodRequest request = staff.postRequest(code, type, units, urgency);
         registry.addRequest(request);
         registry.getAuditLog().record(staff.getId(), "Posted " + request.getRequestId()
                 + " (" + type + ", " + urgency + ")");
+        store.save(registry);
         out.println("Posted: " + request);
 
         chooseStrategy();
@@ -346,13 +400,12 @@ public class ConsoleMenu {
     private void donorMenu() throws DugtongBuhayException {
         out.println("1. Register as a new donor");
         out.println("2. I am already registered");
-        int choice = in.readInt("Choose: ", 1, 2);
-        Donor donor = (choice == 1) ? registerDonor()
-                                    : registry.findDonor(in.readText("Donor ID (try D001): "));
-
-        if (choice == 1) {
-            autosave();
+        out.println("0. Back");
+        int choice = in.readInt("Choose: ", 0, 2);
+        if (choice == 0) {
+            return;
         }
+        Donor donor = choice == 1 ? registerDonor() : registry.findDonor(signIn(Role.DONOR));
 
         boolean back = false;
         while (!back) {
@@ -363,8 +416,11 @@ public class ConsoleMenu {
             out.println("4. Record a donation");
             out.println("5. My alerts");
             out.println("6. Update my health status");
+            out.println("7. Edit my name and mobile number");
+            out.println("8. Change my password");
+            out.println("9. Deactivate my account");
             out.println("0. Back");
-            int pick = in.readInt("Choose: ", 0, 6);
+            int pick = in.readInt("Choose: ", 0, 9);
             try {
                 switch (pick) {
                     case 1: showProfile(donor); break;
@@ -385,14 +441,39 @@ public class ConsoleMenu {
                         registry.getAuditLog().record(donor.getId(), "Updated health status");
                         out.println("Status updated.");
                         break;
+                    case 7:
+                        editDonorProfile(donor);
+                        break;
+                    case 8:
+                        changePassword(donor.getId());
+                        break;
+                    case 9:
+                        back = deactivateAccount(donor.getId());
+                        break;
                     default: back = true;
                 }
-            } catch (IllegalArgumentException | IllegalStateException e) {
+            } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
                 out.println("  ! " + e.getMessage());
             } finally {
                 autosave();
             }
         }
+    }
+
+    private void editDonorProfile(Donor donor) throws DugtongBuhayException {
+        String name = in.readText("Full name: ");
+        String phone = in.readPhone("Mobile number (09XXXXXXXXX): ");
+        String previousName = donor.getName();
+        String previousPhone = donor.getContactNumber();
+        registry.updateDonorProfile(donor, name, phone);
+        try {
+            store.save(registry);
+        } catch (DataStorageException e) {
+            registry.updateDonorProfile(donor, previousName, previousPhone);
+            throw e;
+        }
+        registry.getAuditLog().record(donor.getId(), "Updated profile");
+        out.println("Profile updated.");
     }
 
     private Donor registerDonor() throws DugtongBuhayException {
@@ -403,7 +484,20 @@ public class ConsoleMenu {
         Location place = chooseLocation("Where do you live?");
 
         Donor donor = new Donor(registry.nextDonorId(), name, phone, type, place);
-        registry.addDonor(donor);   // may throw DuplicateRecordException
+        char[] password = in.readNewPassword();
+        try {
+            registry.addDonor(donor);
+            // Persist the profile first so a saved credential always has a profile to load.
+            store.save(registry);
+            try {
+                accounts.enroll(donor.getId(), password);
+            } catch (IOException e) {
+                throw new DataStorageException("Profile " + donor.getId()
+                        + " was saved, but its password could not be saved. Ask the local operator to set it up.");
+            }
+        } finally {
+            Arrays.fill(password, '\0');
+        }
         registry.getAuditLog().record(donor.getId(), "Registered");
         out.println("Registered! Your Donor ID is " + donor.getId() + ".");
         out.println("You will NOT receive alerts until you give consent (option 2).");
@@ -460,7 +554,7 @@ public class ConsoleMenu {
     //  ADMIN
     // =====================================================================
     private void adminMenu() throws DugtongBuhayException {
-        String id = in.readText("Admin ID (try A001): ");
+        String id = signIn(Role.ADMIN);
         Admin admin = registry.findAdmin(id);
         out.println("Welcome, " + admin.getName());
 
@@ -471,14 +565,20 @@ public class ConsoleMenu {
             out.println("2. Withdraw a donor's consent (privacy request)");
             out.println("3. View audit log");
             out.println("4. System summary");
+            out.println("5. Change my password");
+            out.println("6. Deactivate my account");
+            out.println("7. Deactivate or restore an account");
             out.println("0. Back");
-            int choice = in.readInt("Choose: ", 0, 4);
+            int choice = in.readInt("Choose: ", 0, 7);
             try {
                 switch (choice) {
                     case 1: listDonors(); break;
                     case 2: withdrawConsentFor(admin); break;
                     case 3: showAuditLog(); break;
                     case 4: showSummary(); break;
+                    case 5: changePassword(admin.getId()); break;
+                    case 6: back = deactivateAccount(admin.getId()); break;
+                    case 7: manageAccountStatus(admin); break;
                     default: back = true;
                 }
             } catch (DugtongBuhayException | IllegalArgumentException | IllegalStateException e) {
@@ -486,6 +586,68 @@ public class ConsoleMenu {
             } finally {
                 autosave();
             }
+        }
+    }
+
+    private void manageAccountStatus(Admin admin) throws DugtongBuhayException {
+        String target = in.readText("Account ID: ");
+        boolean active = in.readYesNo("Restore this account? Answer no to deactivate it (y/n): ");
+        if (!in.readYesNo("Confirm account status change? (y/n): ")) {
+            return;
+        }
+        char[] password = in.readPassword("Your administrator password: ");
+        try {
+            if (!accounts.setAccountActive(admin.getId(), password, target, active)) {
+                out.println("Administrator verification failed.");
+                return;
+            }
+            registry.getAuditLog().record(admin.getId(), (active ? "Restored " : "Deactivated ") + target);
+            out.println(active ? "Account restored." : "Account deactivated.");
+        } catch (IOException e) {
+            throw new DataStorageException("Could not change account status: " + e.getMessage());
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+    }
+
+    private boolean deactivateAccount(String userId) throws DugtongBuhayException {
+        if (!in.readYesNo("Deactivate your account and sign out? (y/n): ")) {
+            return false;
+        }
+        char[] password = in.readPassword("Current password: ");
+        try {
+            if (!accounts.deactivate(userId, password)) {
+                out.println("Current password is incorrect.");
+                return false;
+            }
+            registry.getAuditLog().record(userId, "Deactivated account");
+            out.println("Account deactivated. You are signed out.");
+            return true;
+        } catch (IOException e) {
+            throw new DataStorageException("Could not deactivate account: " + e.getMessage());
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+    }
+
+    private void changePassword(String userId) throws DugtongBuhayException {
+        char[] current = in.readPassword("Current password: ");
+        try {
+            char[] replacement = in.readNewPassword();
+            try {
+                if (!accounts.changePassword(userId, current, replacement)) {
+                    out.println("Current password is incorrect.");
+                    return;
+                }
+                registry.getAuditLog().record(userId, "Changed password");
+                out.println("Password changed.");
+            } catch (IOException e) {
+                throw new DataStorageException("Could not save the new password: " + e.getMessage());
+            } finally {
+                Arrays.fill(replacement, '\0');
+            }
+        } finally {
+            Arrays.fill(current, '\0');
         }
     }
 

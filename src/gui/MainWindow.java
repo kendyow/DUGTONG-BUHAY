@@ -13,13 +13,15 @@ import javax.swing.JTabbedPane;
 import javax.swing.border.EmptyBorder;
 
 import app.ConsoleMenu.Role;
+import auth.AccountAccess;
+import gui.dashboard.DashboardPanel;
 import service.DataStore;
 import service.Registry;
 
 /** Public search and stock tabs with access to the three role workflows. */
 public class MainWindow extends JFrame {
 
-    public MainWindow(Registry registry, DataStore store) {
+    public MainWindow(Registry registry, DataStore store, AccountAccess accounts) {
         super("DUGTONG-BUHAY - Rare Blood Donor Matching and Emergency Response Network");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -27,6 +29,10 @@ public class MainWindow extends JFrame {
         StockPanel stockPanel = new StockPanel(registry);
 
         JTabbedPane tabs = new JTabbedPane();
+        DashboardPanel dashboard = new DashboardPanel(
+                () -> tabs.setSelectedComponent(finderPanel),
+                () -> tabs.setSelectedComponent(stockPanel));
+        tabs.addTab("Home", dashboard);
         tabs.addTab("Find Blood Nearby", finderPanel);
         tabs.addTab("Hospital Stock Board", stockPanel);
         tabs.addChangeListener(e -> {
@@ -39,7 +45,7 @@ public class MainWindow extends JFrame {
         footer.setBorder(new EmptyBorder(4, 10, 6, 10));
 
         setLayout(new BorderLayout());
-        RoleDialogs roles = new RoleDialogs(this, registry, store);
+        RoleDialogs roles = new RoleDialogs(this, registry, store, accounts);
         JPanel roleBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         addRoleButton(roleBar, "Hospital Staff", Role.STAFF, roles, finderPanel, stockPanel);
         addRoleButton(roleBar, "Donor", Role.DONOR, roles, finderPanel, stockPanel);
